@@ -6,18 +6,15 @@ Requires Make and gcc are installed on your system.
 
 ### Build
 
-- `make`
+`make`
 
 ### Run
 
-- `make run`
-  - or `./server <control port number> <data port number>`
-- `make test`
-  - or `telnet <host> <control port number>`
-
-### Test
-
-- `make tests`
+`make run`
+ - or `./server <control port number> <data port number>`
+ 
+`make test`
+ - or `telnet <host> <control port number>`
 
 
 ### Usage
