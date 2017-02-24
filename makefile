@@ -6,6 +6,8 @@ PARAMETERS=8000 5000
 
 
 # C compiler optimisations and warnings
+# -lnsl Library needed for socket(), connect(), etc
+# -pthread Library needed for pthread commands
 CC_OPTS=-pthread -Wall -Wextra -std=c99 -O3
 
 # First instruction is default

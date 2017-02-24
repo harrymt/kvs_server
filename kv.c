@@ -71,7 +71,7 @@ int deleteItem(const char* key, int free_it) {
     struct item *i = findItem(key);
     if (i == NULL) { return -1; }
     if (free_it) { free(i->value); }
-    
+
     struct item *last = items + nItems - 1;
     if (i == last) {
         nItems--;

@@ -12,13 +12,12 @@
 
 /* A worker thread. You should write the code of this function. */
 void* worker(void* p) {
-	p = NULL;
 	return NULL;
 }
 
 /* You may add code to the main() function. */
 int main(int argc, char** argv) {
-    int cport, dport; /* control and data ports. */
+   int cport, dport; /* control and data ports. */
 
 	if (argc != 3) {
 		printf("Usage: %s data-port control-port\n", argv[0]);
@@ -27,10 +26,19 @@ int main(int argc, char** argv) {
 		cport = atoi(argv[2]);
 		dport = atoi(argv[1]);
 	}
-
+	int running = 1;
 	printf("Server started.\n");
-	while(1) { /* Hang TODO: Implement this*/ }
+	printf("Control Port [%d], Data Port [%d].\n", cport, dport);
 
-    return 0;
+	while(running) {
+	  char line[LINE];
+
+	  // enum DATA_CMD cmd;
+		// char* key;
+		// char* text;
+		// parse_d(buffer, &cmd, &key, &text);
+	}
+
+	return 0;
 }
 
