@@ -94,7 +94,7 @@ int main(int argc, char** argv) {
 
 	DEBUG_PRINT(("Successfully created socket, fd:%d.\n", file_descriptor));
 
-	int is_error = bind_socket(file_descriptor, cport); // TODO, could be dport?
+	int is_error = bind_socket(file_descriptor, dport); // TODO, could be dport?
 	if(is_error == -1) {
 		err_temp = errno; // Save error number
 		printf("Error binding socket %s\n", strerror(err_temp));
