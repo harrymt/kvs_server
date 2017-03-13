@@ -14,8 +14,6 @@ OBJECTS=$(B_DIR)/server-utils.o $(B_DIR)/parser.o $(B_DIR)/kv.o $(B_DIR)/server.
 CFLAGS=-pthread -Wall -Wextra -std=c99 -O3
 
 # First instruction is default
-# default: build
-
 run: build permissions
 	./$(B_DIR)/$(SOURCE) $(PARAMETERS)
 
@@ -25,14 +23,17 @@ run: build permissions
 #	./$(SOURCE) $(CASE_3) && \
 #	./$(SOURCE) $(CASE_4)
 
+build: create_dir $(OBJECTS) makefile
+	$(CC) -o $(B_DIR)/$(SOURCE) $(OBJECTS)
+
 permissions:
 	chmod 777 $(B_DIR)/$(SOURCE)
 
 $(B_DIR)/%.o : $(S_DIR)/%.c
 	gcc $(CFLAGS) -c $< -o $@
 
-build: $(OBJECTS) makefile
-	$(CC) -o $(B_DIR)/$(SOURCE) $(OBJECTS)
+create_dir:
+	mkdir -p $(B_DIR)
 
 clean:
-	rm -f $(B_DIR)/*
+	rm -rf $(B_DIR)
