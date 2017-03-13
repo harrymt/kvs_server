@@ -1,10 +1,12 @@
 
 # Name of source file
 SOURCE=server
+S_DIR=source
+B_DIR=build
 
 PARAMETERS=8000 5000
 
-OBJECTS=server-utils.o parser.o kv.o server.o
+OBJECTS=$(B_DIR)/server-utils.o $(B_DIR)/parser.o $(B_DIR)/kv.o $(B_DIR)/server.o
 
 # C compiler optimisations and warnings
 # -lnsl Library needed for socket(), connect(), etc
@@ -15,7 +17,7 @@ CFLAGS=-pthread -Wall -Wextra -std=c99 -O3
 # default: build
 
 run: build permissions
-	./$(SOURCE) $(PARAMETERS)
+	./$(B_DIR)/$(SOURCE) $(PARAMETERS)
 
 # tests: permissions
 #	./$(SOURCE) $(CASE_1) && \
@@ -24,10 +26,13 @@ run: build permissions
 #	./$(SOURCE) $(CASE_4)
 
 permissions:
-	chmod 777 $(SOURCE)
+	chmod 777 $(B_DIR)/$(SOURCE)
 
-%.o : %.c
+$(B_DIR)/%.o : $(S_DIR)/%.c
 	gcc $(CFLAGS) -c $< -o $@
 
 build: $(OBJECTS) makefile
-	$(CC) -o $(SOURCE) $(OBJECTS)
+	$(CC) -o $(B_DIR)/$(SOURCE) $(OBJECTS)
+
+clean:
+	rm -f $(B_DIR)/*
