@@ -4,14 +4,15 @@ SOURCE=server
 
 PARAMETERS=8000 5000
 
+OBJECTS=server-utils.o parser.o kv.o server.o
 
 # C compiler optimisations and warnings
 # -lnsl Library needed for socket(), connect(), etc
 # -pthread Library needed for pthread commands
-CC_OPTS=-pthread -Wall -Wextra -std=c99 -O3
+CFLAGS=-pthread -Wall -Wextra -std=c99 -O3
 
 # First instruction is default
-default: build
+# default: build
 
 run: build permissions
 	./$(SOURCE) $(PARAMETERS)
@@ -25,6 +26,8 @@ run: build permissions
 permissions:
 	chmod 777 $(SOURCE)
 
-build:
-	gcc $(SOURCE).c -o $(SOURCE) $(CC_OPTS)
+%.o : %.c
+	gcc $(CFLAGS) -c $< -o $@
 
+build: $(OBJECTS) makefile
+	$(CC) -o $(SOURCE) $(OBJECTS)
