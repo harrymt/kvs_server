@@ -1,4 +1,6 @@
 
+#include <pthread.h>
+
 #ifndef _server_h_
 #define _server_h_
 

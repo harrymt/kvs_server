@@ -15,7 +15,7 @@
 
 
 /**
- * Assigns an address to the created scoket.
+ * Assigns an address to the created socket.
  *
  * param fd: File descriptor of the created socket.
  * param port: Port for the socket.
