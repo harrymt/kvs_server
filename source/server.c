@@ -63,10 +63,10 @@ void *server_listen(void* args) {
     pthread_t worker_thread; // TODO do we need an array of these??
     // DEBUG_PRINT(("OK: Server running on port:%d.\n", our_socket->port));
 
-	pthread_mutex_lock(&mutex_kill);
-	server_port_that_wants_to_die = our_socket->port;
-	pthread_cond_signal(&cond_kill);
-	pthread_mutex_unlock(&mutex_kill);
+//	pthread_mutex_lock(&mutex_kill);
+//	server_port_that_wants_to_die = our_socket->port;
+//	pthread_cond_signal(&cond_kill);
+//	pthread_mutex_unlock(&mutex_kill);
 
 	int running = true;
 	while(running) {
@@ -110,6 +110,9 @@ void start_server(struct socket_info *i, pthread_t t) {
 }
 
 int main(int argc, char** argv) {
+	// Buffer single lines
+	setlinebuf(stdout);
+
 	if (argc != 3) {
 		printf("Usage: %s data-port control-port\n", argv[0]);
 		exit(-1);
