@@ -7,6 +7,11 @@
 #define NTHREADS 4
 #define LISTEN_BACKLOG 10
 
-void* worker(void* p);
+struct socket_info
+{
+    int port;
+};
+
+void* worker(void* args);
 
 #endif

@@ -14,6 +14,7 @@
 #include "server-utils.h"
 
 
+
 /**
  * Assigns an address to the created socket.
  *
@@ -24,7 +25,7 @@
  */
 int bind_socket(int fd, int port) {
   struct sockaddr_in sa;
-  socklen_t len = sizeof(sa);
+  socklen_t len = sizeof(sa); // TODO maybe have to keep this memory somewhere
   memset(&sa, 0, len);
   sa.sin_family = AF_INET;
   sa.sin_addr.s_addr = htonl(INADDR_ANY); // or INADDR_LOOPBACK
@@ -43,6 +44,7 @@ int build_socket() {
   int domain = AF_INET; /* AF_INET for TCP/IP, AF_UNIX for unix sockets */
   int type = SOCK_STREAM;
   int protocol = 0; /* Any protocol */
+  // DEBUG_PRINT(("Attempting to build %d socket.\n", type));
   return socket(domain, type, protocol);
 }
 
@@ -59,21 +61,20 @@ int setup_socket(int port) {
     perror("Error creating socket");
     exit(1);
   }
-  DEBUG_PRINT(("Successfully created %d socket.\n", 1));
 
   /* Bind */
   if(bind_socket(file_descriptor, port) == -1) {
     perror("Error binding socket");
     exit(1);
   }
-  DEBUG_PRINT(("Successfully binded socket, fd:%d.\n", file_descriptor));
+  //DEBUG_PRINT(("Successfully binded socket, fd:%d.\n", file_descriptor));
 
   /* Listen */
   if(listen(file_descriptor, LISTEN_BACKLOG) == -1) {
     perror("Error listening");
     exit(1);
   }
-  DEBUG_PRINT(("Listening successfully, backlog:%d.\n", LISTEN_BACKLOG));
+  //DEBUG_PRINT(("Listening successfully, backlog:%d.\n", LISTEN_BACKLOG));
 
   return file_descriptor;
 }
