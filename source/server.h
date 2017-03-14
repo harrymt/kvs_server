@@ -10,6 +10,8 @@
 struct socket_info
 {
     int port;
+    int s; // Socket
+    int worker_num;
 };
 
 void* worker(void* args);

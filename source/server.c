@@ -15,17 +15,97 @@
 #include "debug.h"
 #include "server-utils.h"
 
+#define MAX_MESSAGE_SIZE 2000
 
 pthread_mutex_t mutex_kill =  PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cond_kill = PTHREAD_COND_INITIALIZER;
 int server_port_that_wants_to_die = 0;
 
+/**
+ *
+ */
+int read_message(struct socket_info *data, char* message) {
+	printf("read_message start.\n");
+	// Receiving a client message and place it into the message array
+	int is_error = recv(data->s, message, strlen(message), 0);
+
+	if(is_error <= 0 && (message[is_error - 1] != '\n')) {
+		printf("is_error %d.\n", is_error);
+		message[is_error - 1] = '\0';
+	} else {
+		perror("Read Message failed!");
+		free(data);
+		pthread_exit(NULL);
+	}
+
+	printf("read_message end, is_error %d.\n", is_error);
+	return is_error;
+}
+
+/**
+ * Send message to the connected client.
+ * TODO add params
+ */
+void send_message(struct socket_info *data, void* message) {
+    int is_error = send(data->s, message, strlen(message), 0);
+
+    printf("send_message start, is_error %d.\n", is_error);
+    if (is_error == -1 && (errno == ECONNRESET || errno == EPIPE))
+    {
+    	printf("BAD A %d.\n", is_error);
+        fprintf(stderr, "Socket %d disconnected.\n", data->s);
+        close(data->s);
+        free(data);
+        pthread_exit(NULL);
+    }
+    else if (is_error == -1)
+    {
+    	printf("BAD B %d.\n", is_error);
+        perror("Unexpected error in send_message()!");
+        free(data);
+        pthread_exit(NULL);
+    }
+    printf("send_message end, is_error %d.\n", is_error);
+}
+
+
 /* A worker thread. You should write the code of this function. */
 void* worker(void* args) {
 	/* Extract the thread arguments */
-	struct socket_info *socket = (struct socket_info*) args;
+	struct socket_info *data = (struct socket_info*) args;
 
-	DEBUG_PRINT(("Worker thread, working %d.\n", LISTEN_BACKLOG));
+	printf("Worker 1 executing task.\n");
+
+    /* This tells the pthreads library that no other thread is going to
+       join() this thread. This means that, once this thread terminates,
+       its resources can be safely freed (instead of keeping them around
+       so they can be collected by another thread join()-ing this thread) */
+    pthread_detach(pthread_self());
+
+    // Setup the initial message
+    char initial_message[100];
+    sprintf(initial_message, "Welcome to the server.\nYou are being served by worker %d\n> ", data->worker_num);
+
+    send_message(data, &initial_message);
+    char client_message[MAX_MESSAGE_SIZE];
+    while(1)
+    {
+
+    	int read_size = read_message(data, client_message);
+
+    	// Put a C style string terminator at the end of the message
+    	// client_message[read_size] = '\0';
+
+    	printf("Message received '%d'.\n", read_size);
+    	break; // TODO remove me to see the bug
+    	// TODO, do something with the message
+    	send_message(data, &client_message); // TODO remove
+
+		// Clear the message buffer, ready to accept more messages
+		//memset(client_message, 0, MAX_MESSAGE_SIZE);
+    }
+
+    pthread_exit(NULL);
 
 	// TODO, Read and Write??
 
@@ -48,7 +128,11 @@ void* worker(void* args) {
 	// int close(int fd);
 	// // 0 = success, (-1) = error
 
-	return socket;
+
+	//	pthread_mutex_lock(&mutex_kill);
+	//	server_port_that_wants_to_die = our_socket->port;
+	//	pthread_cond_signal(&cond_kill);
+	//	pthread_mutex_unlock(&mutex_kill);
 }
 
 
@@ -58,15 +142,10 @@ void *server_listen(void* args) {
 
 	/* Create & Bind a socket, then Listen on the port. */
 	int server_socket = setup_socket(our_socket->port);
+
 	struct sockaddr_in peer_addr;
     socklen_t peer_address;
     pthread_t worker_thread; // TODO do we need an array of these??
-    // DEBUG_PRINT(("OK: Server running on port:%d.\n", our_socket->port));
-
-//	pthread_mutex_lock(&mutex_kill);
-//	server_port_that_wants_to_die = our_socket->port;
-//	pthread_cond_signal(&cond_kill);
-//	pthread_mutex_unlock(&mutex_kill);
 
 	int running = true;
 	while(running) {
@@ -79,20 +158,15 @@ void *server_listen(void* args) {
 			continue;
 		}
 
-		DEBUG_PRINT(("Found a connection, fd/connection:%d backlog:%d.\n", connection, LISTEN_BACKLOG));
-
-		if (pthread_create(&worker_thread, NULL, worker, socket) != 0) {
+		printf("Got a connection.\n");
+		our_socket->s = connection;
+		our_socket->worker_num = 1;
+		if (pthread_create(&worker_thread, NULL, worker, our_socket) != 0) {
 			perror("Could not create a worker thread");
-			// free(clientAddr);
-			// free(wa);
-			// close(clientSocket);
-			// close(serverSocket);
 			pthread_exit(NULL);
 		}
 
-		// TODO pass in some workerarguments a socket and if setup completed?
-
-		// parse_d(buffer, &cmd, &key, &text);
+		printf("Delegating to worker 1.\n");
 	}
 	return 0;
 }
