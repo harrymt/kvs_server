@@ -4,7 +4,7 @@ A C implementation of a Key-Value-Store server, full outline available [here](ov
 
 Requires Make and gcc are installed on your system.
 
-Uses the [CHEAT[(https://github.com/Tuplanolla/cheat) unit test system.
+Uses the [CHEAT](https://github.com/Tuplanolla/cheat) unit test system.
 
 ### Build
 
@@ -91,7 +91,7 @@ There are two ports that are available to connect. The Control Port and the Data
   - Print a line, an integer, stating number of items currently in the store.
 
 - `SHUTDOWN`
-  - Stop accepting new connections on the dataport and terminate as sson as all current connections have ended.
+  - Stop accepting new connections on the dataport and terminate as soon as all current connections have ended.
 
 > After reading and processing a single command on the control port, your program should terminate the connection on this port. While a connection on the control port is open, your program does not have to listen for new connections on the data port (i.e. you can handle the control port in your main thread). However, while there is no connection open on the control port, your program must be able to handle multiple simultaneous connections on the data port.
 > You will probably want to `poll()` the control and data ports in your main thread and then handle whichever port you get a connection on.
