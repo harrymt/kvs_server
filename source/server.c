@@ -13,7 +13,7 @@
 #include "parser.h"
 #include "server.h"
 #include "debug.h"
-#include "server-utils.h"
+#include "socket-helper.h"
 
 #define MAX_MESSAGE_SIZE 2000
 
@@ -119,7 +119,7 @@ void* worker(void* args) {
 
 	// 	To close a socket, both the client and server must call close(fd) with the file descriptor for
 	// this socket. Optionally, one can call shutdown before close which has the effect that any
-	// further read/write operations (depending on the “how” parameter) will return end of file
+	// further read/write operations (depending on the ï¿½howï¿½ parameter) will return end of file
 	// resp. failure. Every socket that you open with socket(), you must close again with close().
 	// Using shutdown() is optional but recommended.
 	// int shutdown(int fd, int how);
