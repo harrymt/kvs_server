@@ -7,11 +7,16 @@
 #define NTHREADS 4
 #define LISTEN_BACKLOG 10
 
+
+enum SERVER_TYPE { CONTROL, DATA };
+
+
 struct socket_info
 {
     int port;
     int s; // Socket
     int worker_num;
+    enum SERVER_TYPE type;
 };
 
 void* worker(void* args);

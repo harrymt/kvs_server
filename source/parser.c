@@ -13,14 +13,11 @@
 int parse_d(char* buf, enum DATA_CMD *cmd, char **key, char **text) {
     const char* commands[] = {"PUT", "GET", "COUNT", "DELETE", "EXISTS", NULL};
     const int args[] =       {2,     1,     0,       1,        1,        -1  };
-
     *key = NULL;
     *text = NULL;
-
     /* Find the first word. */
     char *s;
     char *end = buf + LINE - 1;
-
     int nWords = 0;
     for (s = buf; s < end; s++) {
         if (*s >= 'a' && *s <= 'z') { *s += 'A' - 'a'; }
@@ -50,6 +47,7 @@ int parse_d(char* buf, enum DATA_CMD *cmd, char **key, char **text) {
         *cmd = D_END;
         return 0;
     }
+
 
     /* buf now holds the first word, s the rest */
     *cmd = D_ERR_INVALID;

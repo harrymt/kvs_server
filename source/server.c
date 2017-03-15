@@ -17,28 +17,24 @@
 
 #define MAX_MESSAGE_SIZE 2000
 
-pthread_mutex_t mutex_kill =  PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutex_kill = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cond_kill = PTHREAD_COND_INITIALIZER;
 int server_port_that_wants_to_die = 0;
+
+// TODO get total number of workers working, maybe just have a semaphore???
 
 /**
  *
  */
-int read_message(struct socket_info *data, char* message) {
-	printf("read_message start.\n");
-	// Receiving a client message and place it into the message array
-	int is_error = recv(data->s, message, strlen(message), 0);
+int read_message(struct socket_info *data, void* message) {
+	int is_error = read(data->s, message, 255);
 
-	if(is_error <= 0 && (message[is_error - 1] != '\n')) {
-		printf("is_error %d.\n", is_error);
-		message[is_error - 1] = '\0';
-	} else {
+	if(is_error < 0) {
 		perror("Read Message failed!");
 		free(data);
 		pthread_exit(NULL);
 	}
 
-	printf("read_message end, is_error %d.\n", is_error);
 	return is_error;
 }
 
@@ -46,26 +42,24 @@ int read_message(struct socket_info *data, char* message) {
  * Send message to the connected client.
  * TODO add params
  */
-void send_message(struct socket_info *data, void* message) {
-    int is_error = send(data->s, message, strlen(message), 0);
+bool send_message(struct socket_info *data, void* message) {
+    int is_error = write(data->s, message, strlen(message));
 
-    printf("send_message start, is_error %d.\n", is_error);
     if (is_error == -1 && (errno == ECONNRESET || errno == EPIPE))
     {
-    	printf("BAD A %d.\n", is_error);
-        fprintf(stderr, "Socket %d disconnected.\n", data->s);
-        close(data->s);
-        free(data);
-        pthread_exit(NULL);
+    	// TODO there is an error here... when 1 client disconnects, others cant reconnect
+    	fprintf(stderr, "Socket %d disconnected.\n", data->s);
+        return false;
     }
     else if (is_error == -1)
     {
-    	printf("BAD B %d.\n", is_error);
-        perror("Unexpected error in send_message()!");
+    	perror("Unexpected error in send_message()!");
         free(data);
         pthread_exit(NULL);
+        return false;
     }
-    printf("send_message end, is_error %d.\n", is_error);
+
+    return true;
 }
 
 
@@ -74,7 +68,7 @@ void* worker(void* args) {
 	/* Extract the thread arguments */
 	struct socket_info *data = (struct socket_info*) args;
 
-	printf("Worker 1 executing task.\n");
+	printf("Worker %d executing task.\n", data->worker_num);
 
     /* This tells the pthreads library that no other thread is going to
        join() this thread. This means that, once this thread terminates,
@@ -83,31 +77,132 @@ void* worker(void* args) {
     pthread_detach(pthread_self());
 
     // Setup the initial message
+    char* data_message = "Welcome to the KV store."; // \n
+    char* control_message = "Welcome to the server."; // \n
+
     char initial_message[100];
-    sprintf(initial_message, "Welcome to the server.\nYou are being served by worker %d\n> ", data->worker_num);
+    if(data->type == CONTROL) {
+    	sprintf(initial_message, "%s (worker %d).\n> ", control_message, data->worker_num); // TODO comment
+//    	sprintf(initial_message, "%s", control_message);
+    } else if(data->type == DATA) {
+    	sprintf(initial_message, "%s (worker %d).\n> ", data_message, data->worker_num); // TODO comment
+//    	sprintf(initial_message, "%s", data_message);
+    }
 
-    send_message(data, &initial_message);
+    bool still_connected = send_message(data, &initial_message);
+    if(!still_connected) {
+    	// TODO this could be a function
+    	fprintf(stderr, "Send message failure, worker %d.\n", data->worker_num);
+    	// TODO we don't want to be calling pthread here
+    	pthread_exit(NULL);
+    	return 0; // TODO change
+    }
     char client_message[MAX_MESSAGE_SIZE];
-    while(1)
+
+    while(true)
     {
+    	memset(client_message, 0, 256);
 
-    	int read_size = read_message(data, client_message);
+    	// TODO: new issue, if the client disconnects we get weird looping again
+    	int read_size = read_message(data, &client_message);
 
-    	// Put a C style string terminator at the end of the message
-    	// client_message[read_size] = '\0';
+    	// DEBUG_PRINT(("Data port(%d), socket(%d), type(%d), worker(%d).\n", data->port, data->s, data->type, data->worker_num));
 
-    	printf("Message received '%d'.\n", read_size);
-    	break; // TODO remove me to see the bug
-    	// TODO, do something with the message
-    	send_message(data, &client_message); // TODO remove
+    	if(data->type == DATA) {
+        	enum DATA_CMD cmd;
+        	char *key[512], *text[512];
+        	int is_success = parse_d(client_message, &cmd, key, text);
+        	DEBUG_PRINT(("return (%d), message(%s), cmd(%d), worker(%d).\n", is_success, client_message, cmd, data->worker_num));
 
-		// Clear the message buffer, ready to accept more messages
-		//memset(client_message, 0, MAX_MESSAGE_SIZE);
+
+
+        	if(cmd == D_COUNT) {
+        		sprintf(client_message, "%d\n", countItems());
+        	} else if(cmd == D_EXISTS) {
+        		int does_exist = itemExists(*key); // TODO incompatible pointer type :s, should be a const
+        		sprintf(client_message, "%d\n", does_exist);
+        	} else if(cmd == D_GET) {
+        		DEBUG_PRINT(("Getting item %s.\n", *key));
+        		char* r = findValue(*key);
+        		sprintf(client_message, "%s\n", r);  // TODO incompatible pointer type :s, should be a const
+        		if(r == NULL) {
+        			printf("r is null :(\n");
+        		} else {
+        			printf("r is %d, %s\n", *r, r);
+        		}
+        		DEBUG_PRINT(("Item found %s.\n", findValue(*key)));
+        	} else if(cmd == D_PUT) {
+        		DEBUG_PRINT(("Creating Item %s %s.\n", *key, *text));
+        		int is_error = createItem(*key, *text);
+        		if(is_error == 0) {
+        			sprintf(client_message, "Success.\n");
+        		} else {
+        			sprintf(client_message, "Error %d.\n", is_error);
+        		}
+        	} else if(cmd == D_DELETE) {
+        		DEBUG_PRINT(("Deleting Item %s.\n", *key));
+				int is_error = deleteItem(*key, false);
+				if(is_error == 0) {
+					sprintf(client_message, "Success.\n");
+				} else {
+					sprintf(client_message, "Error %d.\n", is_error);
+				}
+        	} else if(cmd == D_END)	{
+        		sprintf(client_message, "Found cmd D_END.\n");
+			} else if(cmd == D_ERR_OL) {
+				sprintf(client_message, "Found cmd D_ERR_OL.\n");
+			} else if(cmd == D_ERR_INVALID) {
+				sprintf(client_message, "Found cmd D_ERR_INVALID.\n");
+			} else if(cmd == D_ERR_SHORT) {
+				sprintf(client_message, "Found cmd D_ERR_SHORT.\n");
+			} else if(cmd == D_ERR_LONG) {
+				sprintf(client_message, "Found cmd D_ERR_LONG.\n");
+        	} else {
+        		sprintf(client_message, "Command not found.\n");
+        	}
+
+
+    	} else if (data->type == CONTROL) {
+        	DEBUG_PRINT(("Is of type Control %d\n", data->type));
+
+    		// Parse a Control command
+    		enum CONTROL_CMD cmd = parse_c(client_message);
+    		printf("Parsed control command %d\n", cmd);
+    		if(cmd == C_ERROR) {
+
+    		    sprintf(client_message, "Command not found.\n");
+
+    		} else if(cmd == C_SHUTDOWN) {
+
+				pthread_mutex_lock(&mutex_kill);
+				server_port_that_wants_to_die = data->port;
+				pthread_cond_signal(&cond_kill);
+				pthread_mutex_unlock(&mutex_kill);
+
+				sprintf(client_message, "Shutting down.\n");
+
+    		} else if(cmd == C_COUNT) {
+    			int items_in_kvs = countItems();
+    		    sprintf(client_message, "%d\n", items_in_kvs);
+    		}
+
+    	} else {
+    		DEBUG_PRINT(("Not a recognised type! %d\n", data->type));
+    	}
+
+    	// Print client return message
+    	DEBUG_PRINT((">%s", client_message));
+
+    	bool is_successful = send_message(data, &client_message);
+        if(!is_successful) {
+        	// TODO this could be a function
+        	fprintf(stderr, "Send message failure, worker %d.\n", data->worker_num);
+        	// TODO we dont want to just call pthread here, we should call a different exit thing
+        	pthread_exit(NULL);
+        }
     }
 
     pthread_exit(NULL);
-
-	// TODO, Read and Write??
 
 	// we now have an open connection
 	// handle it, possibly set run = 0
@@ -119,7 +214,7 @@ void* worker(void* args) {
 
 	// 	To close a socket, both the client and server must call close(fd) with the file descriptor for
 	// this socket. Optionally, one can call shutdown before close which has the effect that any
-	// further read/write operations (depending on the ï¿½howï¿½ parameter) will return end of file
+	// further read/write operations (depending on the “how” parameter) will return end of file
 	// resp. failure. Every socket that you open with socket(), you must close again with close().
 	// Using shutdown() is optional but recommended.
 	// int shutdown(int fd, int how);
@@ -200,7 +295,9 @@ int main(int argc, char** argv) {
 	struct socket_info *data_info = malloc(sizeof(struct socket_info));
 	struct socket_info *control_info = malloc(sizeof(struct socket_info));
 	data_info->port = dport;
+	data_info->type = DATA;
 	control_info->port = cport;
+	control_info->type = CONTROL;
 
 	int number_of_servers_alive = 2;
 	start_server(data_info, data_thread);
