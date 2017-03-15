@@ -10,10 +10,10 @@
 #include <unistd.h>
 #include <netinet/in.h>
 #include "kv.h"
-#include "debug.h"
 #include "parser.h"
+#include "debug.h"
 #include "server.h"
-
+#include "sync_handler.h"
 
 
 /**

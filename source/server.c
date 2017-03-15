@@ -14,12 +14,13 @@
 #include "server.h"
 #include "debug.h"
 #include "socket-helper.h"
+#include "sync_handler.h"
 
 #define MAX_MESSAGE_SIZE 2000
-
 pthread_mutex_t mutex_kill = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cond_kill = PTHREAD_COND_INITIALIZER;
 int server_port_that_wants_to_die = 0;
+
 
 // TODO get total number of workers working, maybe just have a semaphore???
 
@@ -63,6 +64,25 @@ bool send_message(struct socket_info *data, void* message) {
 }
 
 
+void get_initial_message(int type, int worker, void* message) {
+	char* data_message = "Welcome to the KV store.\n"; // \n
+	char* control_message = "Welcome to the server.\n"; // \n
+	if(type == CONTROL) {
+		if(DEBUG) {
+			sprintf(message, "%s (worker %d).\n> ", control_message, worker);
+		} else {
+			sprintf(message, "%s", control_message);
+		}
+	} else if(type == DATA) {
+		if(DEBUG) {
+			sprintf(message, "%s (worker %d).\n> ", data_message, worker);
+		} else {
+			sprintf(message, "%s", data_message);
+		}
+	}
+}
+
+
 /* A worker thread. You should write the code of this function. */
 void* worker(void* args) {
 	/* Extract the thread arguments */
@@ -76,25 +96,13 @@ void* worker(void* args) {
        so they can be collected by another thread join()-ing this thread) */
     pthread_detach(pthread_self());
 
-    // Setup the initial message
-    char* data_message = "Welcome to the KV store."; // \n
-    char* control_message = "Welcome to the server."; // \n
-
-    char initial_message[100];
-    if(data->type == CONTROL) {
-    	sprintf(initial_message, "%s (worker %d).\n> ", control_message, data->worker_num); // TODO comment
-//    	sprintf(initial_message, "%s", control_message);
-    } else if(data->type == DATA) {
-    	sprintf(initial_message, "%s (worker %d).\n> ", data_message, data->worker_num); // TODO comment
-//    	sprintf(initial_message, "%s", data_message);
-    }
+    char initial_message[512];
+    get_initial_message(data->type, data->worker_num, initial_message);
 
     bool still_connected = send_message(data, &initial_message);
     if(!still_connected) {
     	// TODO this could be a function
     	fprintf(stderr, "Send message failure, worker %d.\n", data->worker_num);
-    	// TODO we don't want to be calling pthread here
-    	pthread_exit(NULL);
     	return 0; // TODO change
     }
     char client_message[MAX_MESSAGE_SIZE];
@@ -108,86 +116,16 @@ void* worker(void* args) {
 
     	// DEBUG_PRINT(("Data port(%d), socket(%d), type(%d), worker(%d).\n", data->port, data->s, data->type, data->worker_num));
 
-    	if(data->type == DATA) {
-        	enum DATA_CMD cmd;
-        	char *key[512], *text[512];
-        	int is_success = parse_d(client_message, &cmd, key, text);
-        	DEBUG_PRINT(("return (%d), message(%s), cmd(%d), worker(%d).\n", is_success, client_message, cmd, data->worker_num));
-
-
-
-        	if(cmd == D_COUNT) {
-        		sprintf(client_message, "%d\n", countItems());
-        	} else if(cmd == D_EXISTS) {
-        		int does_exist = itemExists(*key); // TODO incompatible pointer type :s, should be a const
-        		sprintf(client_message, "%d\n", does_exist);
-        	} else if(cmd == D_GET) {
-        		DEBUG_PRINT(("Getting item %s.\n", *key));
-        		char* r = findValue(*key);
-        		sprintf(client_message, "%s\n", r);  // TODO incompatible pointer type :s, should be a const
-        		if(r == NULL) {
-        			printf("r is null :(\n");
-        		} else {
-        			printf("r is %d, %s\n", *r, r);
-        		}
-        		DEBUG_PRINT(("Item found %s.\n", findValue(*key)));
-        	} else if(cmd == D_PUT) {
-        		DEBUG_PRINT(("Creating Item %s %s.\n", *key, *text));
-        		int is_error = createItem(*key, *text);
-        		if(is_error == 0) {
-        			sprintf(client_message, "Success.\n");
-        		} else {
-        			sprintf(client_message, "Error %d.\n", is_error);
-        		}
-        	} else if(cmd == D_DELETE) {
-        		DEBUG_PRINT(("Deleting Item %s.\n", *key));
-				int is_error = deleteItem(*key, false);
-				if(is_error == 0) {
-					sprintf(client_message, "Success.\n");
-				} else {
-					sprintf(client_message, "Error %d.\n", is_error);
-				}
-        	} else if(cmd == D_END)	{
-        		sprintf(client_message, "Found cmd D_END.\n");
-			} else if(cmd == D_ERR_OL) {
-				sprintf(client_message, "Found cmd D_ERR_OL.\n");
-			} else if(cmd == D_ERR_INVALID) {
-				sprintf(client_message, "Found cmd D_ERR_INVALID.\n");
-			} else if(cmd == D_ERR_SHORT) {
-				sprintf(client_message, "Found cmd D_ERR_SHORT.\n");
-			} else if(cmd == D_ERR_LONG) {
-				sprintf(client_message, "Found cmd D_ERR_LONG.\n");
-        	} else {
-        		sprintf(client_message, "Command not found.\n");
-        	}
-
-
-    	} else if (data->type == CONTROL) {
-        	DEBUG_PRINT(("Is of type Control %d\n", data->type));
-
-    		// Parse a Control command
-    		enum CONTROL_CMD cmd = parse_c(client_message);
-    		printf("Parsed control command %d\n", cmd);
-    		if(cmd == C_ERROR) {
-
-    		    sprintf(client_message, "Command not found.\n");
-
-    		} else if(cmd == C_SHUTDOWN) {
-
-				pthread_mutex_lock(&mutex_kill);
-				server_port_that_wants_to_die = data->port;
-				pthread_cond_signal(&cond_kill);
-				pthread_mutex_unlock(&mutex_kill);
-
-				sprintf(client_message, "Shutting down.\n");
-
-    		} else if(cmd == C_COUNT) {
-    			int items_in_kvs = countItems();
-    		    sprintf(client_message, "%d\n", items_in_kvs);
-    		}
-
-    	} else {
-    		DEBUG_PRINT(("Not a recognised type! %d\n", data->type));
+    	int is_success = run_command(data, &client_message);
+    	if(is_success == R_DEATH) { // They want to die
+    		close(data->s);
+    		break;
+    	} else if(is_success == R_SHUTDOWN) {
+    		printf("Shutting down.\n");
+    		pthread_mutex_lock(&mutex_kill);
+			server_port_that_wants_to_die = data->port;
+			pthread_cond_signal(&cond_kill);
+			pthread_mutex_unlock(&mutex_kill);
     	}
 
     	// Print client return message
@@ -198,36 +136,11 @@ void* worker(void* args) {
         	// TODO this could be a function
         	fprintf(stderr, "Send message failure, worker %d.\n", data->worker_num);
         	// TODO we dont want to just call pthread here, we should call a different exit thing
-        	pthread_exit(NULL);
+        	return 0;
         }
     }
 
-    pthread_exit(NULL);
-
-	// we now have an open connection
-	// handle it, possibly set run = 0
-	// if we want to shut down.
-	// enum DATA_CMD cmd;
-	// char* key;
-	// char* text;
-
-
-	// 	To close a socket, both the client and server must call close(fd) with the file descriptor for
-	// this socket. Optionally, one can call shutdown before close which has the effect that any
-	// further read/write operations (depending on the “how” parameter) will return end of file
-	// resp. failure. Every socket that you open with socket(), you must close again with close().
-	// Using shutdown() is optional but recommended.
-	// int shutdown(int fd, int how);
-	// // how: SHUT_RD, SHUT_WR, SHUT_RDWR
-	// // 0 = success, (-1) = error
-	// int close(int fd);
-	// // 0 = success, (-1) = error
-
-
-	//	pthread_mutex_lock(&mutex_kill);
-	//	server_port_that_wants_to_die = our_socket->port;
-	//	pthread_cond_signal(&cond_kill);
-	//	pthread_mutex_unlock(&mutex_kill);
+    return 0;
 }
 
 
@@ -258,7 +171,7 @@ void *server_listen(void* args) {
 		our_socket->worker_num = 1;
 		if (pthread_create(&worker_thread, NULL, worker, our_socket) != 0) {
 			perror("Could not create a worker thread");
-			pthread_exit(NULL);
+			break;
 		}
 
 		printf("Delegating to worker 1.\n");
@@ -338,3 +251,28 @@ int main(int argc, char** argv) {
 }
 
 
+
+// we now have an open connection
+// handle it, possibly set run = 0
+// if we want to shut down.
+// enum DATA_CMD cmd;
+// char* key;
+// char* text;
+
+
+// 	To close a socket, both the client and server must call close(fd) with the file descriptor for
+// this socket. Optionally, one can call shutdown before close which has the effect that any
+// further read/write operations (depending on the “how” parameter) will return end of file
+// resp. failure. Every socket that you open with socket(), you must close again with close().
+// Using shutdown() is optional but recommended.
+// int shutdown(int fd, int how);
+// // how: SHUT_RD, SHUT_WR, SHUT_RDWR
+// // 0 = success, (-1) = error
+// int close(int fd);
+// // 0 = success, (-1) = error
+
+
+//	pthread_mutex_lock(&mutex_kill);
+//	server_port_that_wants_to_die = our_socket->port;
+//	pthread_cond_signal(&cond_kill);
+//	pthread_mutex_unlock(&mutex_kill);
