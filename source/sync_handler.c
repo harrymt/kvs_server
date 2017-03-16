@@ -85,9 +85,8 @@ enum RETURN_TYPE run_command(struct socket_info *data, void* message) {
 			 }
 
 		} else if(cmd == C_SHUTDOWN) {
-			return R_SHUTDOWN;
-
 			sprintf(message, "Shutting down.\n");
+			return R_SHUTDOWN;
 
 		} else if(cmd == C_COUNT) {
 			int items_in_kvs = countItems();

@@ -59,20 +59,20 @@ int setup_socket(int port) {
   /* Build */
   int file_descriptor = build_socket();
   if(file_descriptor == -1) {
-    perror("Error creating socket");
+    perro("Error creating socket");
     exit(1);
   }
 
   /* Bind */
   if(bind_socket(file_descriptor, port) == -1) {
-    perror("Error binding socket");
+    perro("Error binding socket");
     exit(1);
   }
   //DEBUG_PRINT(("Successfully binded socket, fd:%d.\n", file_descriptor));
 
   /* Listen */
   if(listen(file_descriptor, LISTEN_BACKLOG) == -1) {
-    perror("Error listening");
+    perro("Error listening");
     exit(1);
   }
   //DEBUG_PRINT(("Listening successfully, backlog:%d.\n", LISTEN_BACKLOG));
