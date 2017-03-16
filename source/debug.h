@@ -17,4 +17,7 @@
   # define DEBUG_PRINT(x) do {} while (0)
   #endif
 
+
+#define perro(x) {fprintf(stderr, "%s:%d: %s: %s\n", __FILE__, __LINE__, x, strerror(errno));exit(1);}
+
 #endif

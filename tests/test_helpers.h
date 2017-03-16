@@ -8,7 +8,6 @@
 #define MSG_NOSIGNAL SO_NOSIGPIPE
 #endif
 
-#define perro(x) {fprintf(stderr, "%s:%d: %s: %s\n", __FILE__, __LINE__, x, strerror(errno));exit(1);}
 
 void leave_server();
 void connect_to_server(int port);
