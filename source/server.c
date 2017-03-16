@@ -31,7 +31,7 @@ int read_message(struct socket_info *data, void* message) {
 	int is_error = read(data->s, message, 255);
 
 	if(is_error < 0) {
-		perror("Read Message failed!");
+		perro("Read Message failed!");
 		free(data);
 		pthread_exit(NULL);
 	}
@@ -54,7 +54,7 @@ bool send_message(struct socket_info *data, void* message) {
     }
     else if (is_error == -1)
     {
-    	perror("Unexpected error in send_message()!");
+    	perro("Unexpected error in send_message()!");
         free(data);
         pthread_exit(NULL);
         return false;
@@ -69,13 +69,13 @@ void get_initial_message(int type, int worker, void* message) {
 	char* control_message = "Welcome to the server.\n"; // \n
 	if(type == CONTROL) {
 		if(DEBUG) {
-			sprintf(message, "%s (worker %d).\n> ", control_message, worker);
+			sprintf(message, "%s (worker %d).\n", control_message, worker);
 		} else {
 			sprintf(message, "%s", control_message);
 		}
 	} else if(type == DATA) {
 		if(DEBUG) {
-			sprintf(message, "%s (worker %d).\n> ", data_message, worker);
+			sprintf(message, "%s(worker %d).\n", data_message, worker);
 		} else {
 			sprintf(message, "%s", data_message);
 		}
@@ -161,7 +161,7 @@ void *server_listen(void* args) {
 		int connection = accept(server_socket, (struct sockaddr *) &peer_addr, &peer_address);
 
 		if (connection == -1) {
-			perror("Error accepting connection");
+			perro("Error accepting connection");
 			DEBUG_PRINT(("Could not accept a connection, just containing, backlog:%d.\n", LISTEN_BACKLOG));
 			continue;
 		}
@@ -170,7 +170,7 @@ void *server_listen(void* args) {
 		our_socket->s = connection;
 		our_socket->worker_num = 1;
 		if (pthread_create(&worker_thread, NULL, worker, our_socket) != 0) {
-			perror("Could not create a worker thread");
+			perro("Could not create a worker thread");
 			break;
 		}
 
@@ -184,7 +184,7 @@ void *server_listen(void* args) {
  */
 void start_server(struct socket_info *i, pthread_t t) {
 	if (pthread_create(&t, NULL, server_listen, i) < 0) {
-		perror("Could not start server.");
+		perro("Could not start server.");
 		exit(-1);
 	}
 
