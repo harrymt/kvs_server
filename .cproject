@@ -41,7 +41,6 @@
 							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.cygwin.exe.debug.328804370" name="Cygwin C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.cygwin.exe.debug"/>
 						</toolChain>
 					</folderInfo>
-					<fileInfo id="cdt.managedbuild.config.gnu.cygwin.exe.debug.373353374.804282606" name="cheat.h" rcbsApplicability="disable" resourcePath="tests/cheat.h" toolsToInvoke=""/>
 					<sourceEntries>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
@@ -89,7 +88,6 @@
 							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.cygwin.exe.release.914201327" name="Cygwin C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.cygwin.exe.release"/>
 						</toolChain>
 					</folderInfo>
-					<fileInfo id="cdt.managedbuild.config.gnu.cygwin.exe.release.313439627.1643337193" name="cheat.h" rcbsApplicability="disable" resourcePath="tests/cheat.h" toolsToInvoke=""/>
 				</configuration>
 			</storageModule>
 			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>

@@ -4,7 +4,7 @@ A C implementation of a Key-Value-Store server, full outline available [here](ov
 
 Requires Make and gcc are installed on your system.
 
-Uses the [CHEAT](https://github.com/Tuplanolla/cheat) unit test system.
+Program is black box tested, using my own [test harness](/tests).
 
 ### Build
 
