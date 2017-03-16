@@ -12,11 +12,15 @@ Program is black box tested, using my own [test harness](/tests).
 
 ### Run
 
-`make run`
- - or `./server <control port number> <data port number>`
- 
-`make test`
- - or `telnet <host> <control port number>`
+`./build/server <control port number> <data port number>`
+ - or `make run`
+
+
+### Tests
+
+- Build: `make tests`
+- Test: `./tests/tests <control port number> <data port number>`
+- Or manually access the server using `telnet`, e.g. `telnet <host> <control port number>/<data port number>`
 
 
 ### Usage
