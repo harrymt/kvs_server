@@ -8,7 +8,7 @@ T_DIR=tests
 PARAMETERS=8000 5000
 
 ALL_OBJECTS=$(OBJECTS) $(B_DIR)/main.o
-OBJECTS=$(B_DIR)/socket-helper.o $(B_DIR)/sync_handler.o $(B_DIR)/parser.o $(B_DIR)/kv.o $(B_DIR)/server.o
+OBJECTS=$(B_DIR)/socket-helper.o $(B_DIR)/protocol_manager.o $(B_DIR)/parser.o $(B_DIR)/kv.o $(B_DIR)/server.o
 
 # C compiler optimisations and warnings
 # -lnsl Library needed for socket(), connect(), etc

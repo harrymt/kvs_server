@@ -13,8 +13,8 @@
 #include "parser.h"
 #include "server.h"
 #include "debug.h"
+#include "protocol_manager.h"
 #include "socket-helper.h"
-#include "sync_handler.h"
 
 #define MAX_MESSAGE_SIZE 2000
 pthread_mutex_t mutex_kill = PTHREAD_MUTEX_INITIALIZER;
@@ -117,6 +117,16 @@ void* worker(void* args) {
     	// DEBUG_PRINT(("Data port(%d), socket(%d), type(%d), worker(%d).\n", data->port, data->s, data->type, data->worker_num));
 
     	int is_success = run_command(data, &client_message);
+
+    	// Send message back to the client
+    	bool is_successful = send_message(data, &client_message);
+        if(!is_successful) {
+        	// TODO this could be a function
+        	fprintf(stderr, "Send message failure, worker %d.\n", data->worker_num);
+        	// TODO we dont want to just call pthread here, we should call a different exit thing
+        	return 0;
+        }
+
     	if(is_success == R_DEATH) { // They want to die
     		close(data->s);
     		break;
@@ -127,17 +137,6 @@ void* worker(void* args) {
 			pthread_cond_signal(&cond_kill);
 			pthread_mutex_unlock(&mutex_kill);
     	}
-
-    	// Print client return message
-    	DEBUG_PRINT((">%s", client_message));
-
-    	bool is_successful = send_message(data, &client_message);
-        if(!is_successful) {
-        	// TODO this could be a function
-        	fprintf(stderr, "Send message failure, worker %d.\n", data->worker_num);
-        	// TODO we dont want to just call pthread here, we should call a different exit thing
-        	return 0;
-        }
     }
 
     return 0;

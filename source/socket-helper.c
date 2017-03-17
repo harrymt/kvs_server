@@ -12,8 +12,8 @@
 #include "kv.h"
 #include "parser.h"
 #include "debug.h"
+#include "protocol_manager.h"
 #include "server.h"
-#include "sync_handler.h"
 
 
 /**
@@ -42,8 +42,8 @@ int bind_socket(int fd, int port) {
  * Returns: file descriptor, otherwise -1 on error.
  */
 int build_socket() {
-  int domain = AF_INET; /* AF_INET for TCP/IP, AF_UNIX for unix sockets */
-  int type = SOCK_STREAM;
+  int domain = AF_INET; /* IPv4 TCP */
+  int type = SOCK_STREAM; // TCP/IP
   int protocol = 0; /* Any protocol */
   // DEBUG_PRINT(("Attempting to build %d socket.\n", type));
   return socket(domain, type, protocol);

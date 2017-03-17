@@ -77,8 +77,8 @@ void my_assert_equals(char* a, char* b, char* test_name) {
 	int test_success = strcmp(a, b);
 	if(test_success) {
 		char o[512];
-		sprintf(o, "%s: (%s != %s)", test_name, a, b);
-		perro(o)
+		sprintf(o, "ASSERTION FAILED: %s: ('%s' != '%s')", test_name, a, b);
+		perro(o);
 	} else {
 		printf("%s: Passed, (%s == %s).\n", test_name, a, b);
 	}
@@ -86,7 +86,6 @@ void my_assert_equals(char* a, char* b, char* test_name) {
 
 void test_cmd(char* cmd, char* res, char* test_name) {
 	char output[MAX_MSG_LENGTH] = {0};
-	char input[MAX_MSG_LENGTH] = {0};
 	send_cmd(cmd);
 	receive_one_line(output);
 	my_assert_equals(output, res, test_name);
