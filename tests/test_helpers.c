@@ -12,6 +12,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include "../source/kv.h"
 #include "../source/parser.h"
 #include "../source/debug.h"
@@ -19,10 +20,30 @@
 #include "../source/socket-helper.h"
 
 
-int my_test_sock;
+int my_test_sock; // File descriptor
 
-void leave_server() {
+pthread_t control_thread;
+pthread_t data_thread;
+
+
+void start_test_server(int port, enum SERVER_TYPE type) {
+	struct socket_info *data_info = malloc(sizeof(struct socket_info));
+	data_info->port = port;
+	data_info->type = type;
+	if(type == CONTROL) {
+		start_server(data_info, control_thread);
+	} else if (type == DATA) {
+		start_server(data_info, data_thread);
+	}
+}
+
+void leave_server(enum SERVER_TYPE type) {
 	close(my_test_sock);
+	if(type == CONTROL) {
+		pthread_join(control_thread, NULL);
+	} else if(type == DATA) {
+		pthread_join(data_thread, NULL);
+	}
 }
 
 void send_cmd(char* input) {
@@ -39,10 +60,11 @@ void connect_to_server(int port) {
 	my_test_sock = socket(AF_INET, SOCK_STREAM, 0); if(my_test_sock == -1) perro("Error opening socket");
 
 	struct in_addr server_addr;
-	if(!inet_aton("127.0.0.1", &server_addr)) perro("inet_aton");
+	if(!inet_pton(AF_INET, "127.0.0.1", &server_addr)) perro("inet_aton");
 
-	struct sockaddr_in connection; connection.sin_family = AF_INET;
+	struct sockaddr_in connection;
 	memcpy(&connection.sin_addr, &server_addr, sizeof(server_addr));
+	connection.sin_family = AF_INET;
 	connection.sin_port = htons(port);
 
 	if (connect(my_test_sock, (const struct sockaddr*) &connection, sizeof(connection)) != 0) perro("Have you started the server?");

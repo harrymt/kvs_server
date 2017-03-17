@@ -191,18 +191,7 @@ void start_server(struct socket_info *i, pthread_t t) {
 	DEBUG_PRINT(("OK: Successfully started server listening on port:%d.\n", ((struct socket_info *)i)->port));
 }
 
-int main(int argc, char** argv) {
-	// Buffer single lines
-	setlinebuf(stdout);
-
-	if (argc != 3) {
-		printf("Usage: %s data-port control-port\n", argv[0]);
-		exit(-1);
-	}
-
-	/* Setup control and data ports. */
-	int cport = atoi(argv[2]), dport = atoi(argv[1]);
-
+int initiate_server(int cport, int dport) {
 	pthread_t data_thread = pthread_self(), control_thread = pthread_self();
 
 	struct socket_info *data_info = malloc(sizeof(struct socket_info));

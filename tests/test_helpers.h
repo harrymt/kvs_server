@@ -1,4 +1,6 @@
 
+#include "../source/server.h"
+
 #ifndef _test_helpers_h_
 #define _test_helpers_h_
 
@@ -14,5 +16,6 @@ void connect_to_server(int port);
 
 void my_assert_equals(char* a, char* b, char* test_name);
 void test_cmd(char* cmd, char* res, char* test_name);
+void start_test_server(int port, enum SERVER_TYPE type);
 
 #endif

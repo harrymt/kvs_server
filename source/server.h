@@ -21,5 +21,8 @@ struct socket_info
 };
 
 void* worker(void* args);
+void start_server(struct socket_info *i, pthread_t t);
+
+int initiate_server(int cport, int dport);
 
 #endif
