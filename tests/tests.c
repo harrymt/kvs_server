@@ -12,13 +12,24 @@
 #include <errno.h>
 #include <unistd.h>
 #include <netinet/in.h>
-#include "test_helpers.h"
 #include "../source/kv.h"
 #include "../source/parser.h"
 #include "../source/debug.h"
 #include "../source/server.h"
 #include "../source/socket-helper.h"
+#include "test_client.h"
 
+
+void my_assert_equals(char* a, char* b, char* test_name) {
+	int test_success = strcmp(a, b);
+	if(test_success) {
+		char o[512];
+		sprintf(o, "ASSERTION FAILED: %s: ('%s' != '%s')", test_name, a, b);
+		perro(o);
+	} else {
+		printf("> Passed: '%s'\n", test_name);
+	}
+}
 
 int main(int argc, char** argv) {
 	if (argc != 3) {
