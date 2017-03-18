@@ -29,6 +29,7 @@ void my_assert_equals(char* a, char* b, char* test_name) {
 	} else {
 		printf("> Passed: '%s'\n", test_name);
 	}
+	fflush(stdout);
 }
 
 int main(int argc, char** argv) {
@@ -66,7 +67,7 @@ int main(int argc, char** argv) {
 	test_cmd("GET name\n", "Harry\n", "Get value after re-add.", datac);
 
 	test_cmd("\n", "", "Leave test.", datac);
-	leave_server(datac, DATA);
+	leave_server(datac);
 
 	// Start the control server
 	start_test_server(cport, CONTROL);
@@ -76,14 +77,23 @@ int main(int argc, char** argv) {
 
 	// Run tests
 	test_cmd("COUNT", "1\n", "Count test on control retains value.", controlc);
+
+	leave_server(controlc);
+
+	// Run multi connection tests
+	// TODO: Fails atm, fix it!
+	datac = connect_to_server(dport);
+	int second_datac = connect_to_server(dport);
+	test_cmd("COUNT\n", "1\n", "Count multi connections test A.", datac);
+	test_cmd("COUNT\n", "1\n", "Count multi connections test B.", second_datac);
+
+	// Test leave server
+	controlc = connect_to_server(cport);
 	test_cmd("SHUTDOWN", "Shutting down.\n", "Test successful shutdown.", controlc);
+	leave_server(controlc);
 
-	leave_server(controlc, CONTROL);
-
-
-	// TODO add tests to test multi connections get expected responses.
-
-
+	stop_server(DATA);
+	stop_server(CONTROL);
 
 	printf("==== SUCCESS ====\nAll tests pass\n");
 	return 0;

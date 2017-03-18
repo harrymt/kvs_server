@@ -20,8 +20,6 @@
 #include "../source/server.h"
 #include "../source/socket-helper.h"
 
-
-
 pthread_t control_thread;
 pthread_t data_thread;
 
@@ -37,8 +35,11 @@ void start_test_server(int port, enum SERVER_TYPE type) {
 	}
 }
 
-void leave_server(int connection, enum SERVER_TYPE type) {
+void leave_server(int connection) {
 	close(connection);
+}
+
+void stop_server(enum SERVER_TYPE type) {
 	if(type == CONTROL) {
 		pthread_join(control_thread, NULL);
 	} else if(type == DATA) {
