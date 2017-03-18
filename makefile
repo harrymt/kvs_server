@@ -26,7 +26,7 @@ run_tests:
 	./$(T_DIR)/$(T_DIR)
 
 build_tests:
-	gcc -I . $(CFLAGS) -o $(T_DIR)/$(T_DIR) $(T_DIR)/test_helpers.c $(T_DIR)/$(T_DIR).c $(OBJECTS)
+	gcc -I . $(CFLAGS) -o $(T_DIR)/$(T_DIR) $(T_DIR)/test_client.c $(T_DIR)/$(T_DIR).c $(OBJECTS)
 
 
 $(B_DIR)/%.o : $(S_DIR)/%.c
