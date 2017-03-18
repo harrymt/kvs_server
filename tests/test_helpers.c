@@ -57,11 +57,11 @@ void leave_server(int connection, enum SERVER_TYPE type) {
 
 
 void send_cmd(char* input, int connection) {
-	if(send(connection, input, strlen(input)+1, 0) < 0) perro("send"); // TODO change to write
+	if(write(connection, input, strlen(input) + 1) < 0) perro("send"); // TODO change to write
 }
 
 void receive_one_line(char* buf, int connection) {
-	int filled = recv(connection, buf, MAX_MSG_LENGTH-1, 0); // TODO change to read
+	int filled = read(connection, buf, MAX_MSG_LENGTH-1); // TODO change to read
 	buf[filled] = '\0';
 }
 
