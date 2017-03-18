@@ -20,11 +20,20 @@
 #include "../source/socket-helper.h"
 
 
-int my_test_sock; // File descriptor
 
 pthread_t control_thread;
 pthread_t data_thread;
 
+void my_assert_equals(char* a, char* b, char* test_name) {
+	int test_success = strcmp(a, b);
+	if(test_success) {
+		char o[512];
+		sprintf(o, "ASSERTION FAILED: %s: ('%s' != '%s')", test_name, a, b);
+		perro(o);
+	} else {
+		printf("> Passed: '%s'\n", test_name);
+	}
+}
 
 void start_test_server(int port, enum SERVER_TYPE type) {
 	struct socket_info *data_info = malloc(sizeof(struct socket_info));
@@ -37,8 +46,8 @@ void start_test_server(int port, enum SERVER_TYPE type) {
 	}
 }
 
-void leave_server(enum SERVER_TYPE type) {
-	close(my_test_sock);
+void leave_server(int connection, enum SERVER_TYPE type) {
+	close(connection);
 	if(type == CONTROL) {
 		pthread_join(control_thread, NULL);
 	} else if(type == DATA) {
@@ -46,18 +55,18 @@ void leave_server(enum SERVER_TYPE type) {
 	}
 }
 
-void send_cmd(char* input) {
-	if(send(my_test_sock, input, strlen(input)+1, 0) < 0) perro("send");
+
+void send_cmd(char* input, int connection) {
+	if(send(connection, input, strlen(input)+1, 0) < 0) perro("send"); // TODO change to write
 }
 
-void receive_one_line(char* buf) {
-	int filled = 0;
-	filled = recv(my_test_sock, buf, MAX_MSG_LENGTH-1, 0);
+void receive_one_line(char* buf, int connection) {
+	int filled = recv(connection, buf, MAX_MSG_LENGTH-1, 0); // TODO change to read
 	buf[filled] = '\0';
 }
 
-void connect_to_server(int port) {
-	my_test_sock = socket(AF_INET, SOCK_STREAM, 0); if(my_test_sock == -1) perro("Error opening socket");
+int connect_to_server(int port) {
+	int my_test_sock = socket(AF_INET, SOCK_STREAM, 0); if(my_test_sock == -1) perro("Error opening socket");
 
 	struct in_addr server_addr;
 	if(!inet_pton(AF_INET, "127.0.0.1", &server_addr)) perro("inet_aton");
@@ -70,25 +79,15 @@ void connect_to_server(int port) {
 	if (connect(my_test_sock, (const struct sockaddr*) &connection, sizeof(connection)) != 0) perro("Have you started the server?");
 
 	char output[MAX_MSG_LENGTH] = {0};
-	receive_one_line(output); // Receive Motd
+	receive_one_line(output, my_test_sock); // Receive Motd
+	return my_test_sock;
 }
 
-void my_assert_equals(char* a, char* b, char* test_name) {
-	int test_success = strcmp(a, b);
-	if(test_success) {
-		char o[512];
-		sprintf(o, "ASSERTION FAILED: %s: ('%s' != '%s')", test_name, a, b);
-		perro(o);
-	} else {
-		printf("%s: Passed.\n", test_name);
-		DEBUG_PRINT(("(%s == %s)\n", a, b));
-	}
-}
 
-void test_cmd(char* cmd, char* res, char* test_name) {
+void test_cmd(char* cmd, char* res, char* test_name, int connection) {
 	char output[MAX_MSG_LENGTH] = {0};
-	send_cmd(cmd);
-	receive_one_line(output);
+	send_cmd(cmd, connection);
+	receive_one_line(output, connection);
 	my_assert_equals(output, res, test_name);
-	sleep(1); // Sleep between test responses
+//	sleep(1); // Sleep between test responses
 }

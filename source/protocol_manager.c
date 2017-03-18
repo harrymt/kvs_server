@@ -120,7 +120,7 @@ int parse_message_with_data_protocol(void* message) {
 	int is_success = parse_d(message, &cmd, key, &text);
 
 	// TODO remove
-	DEBUG_PRINT(("Is_success %d\n", is_success));
+//	DEBUG_PRINT(("Is_success %d\n", is_success));
 
 
 	// If user issued COUNT command

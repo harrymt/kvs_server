@@ -11,11 +11,11 @@
 #endif
 
 
-void leave_server();
-void connect_to_server(int port);
+void leave_server(int connection, enum SERVER_TYPE type);
+int connect_to_server(int port);
 
 void my_assert_equals(char* a, char* b, char* test_name);
-void test_cmd(char* cmd, char* res, char* test_name);
+void test_cmd(char* cmd, char* res, char* test_name, int connection);
 void start_test_server(int port, enum SERVER_TYPE type);
 
 #endif
