@@ -114,11 +114,13 @@ int parse_message_with_data_protocol(void* message) {
 
 	// Parse the command, storing the results in key and text.
 	enum DATA_CMD cmd;
-	char *key[512], *text[512];
-	int is_success = parse_d(message, &cmd, key, text);
+	char *key[512];
+	char *text = (char*) malloc(LINE * sizeof(char));
+
+	int is_success = parse_d(message, &cmd, key, &text);
 
 	// TODO remove
-	// DEBUG_PRINT(("Is_success %d\n", is_success));
+	DEBUG_PRINT(("Is_success %d\n", is_success));
 
 
 	// If user issued COUNT command
@@ -150,14 +152,18 @@ int parse_message_with_data_protocol(void* message) {
 		if(result == NULL) {
 			sprintf(message, "No such key.\n");
 		} else {
-			sprintf(message, "%s.\n", result);
+			sprintf(message, "%s\n", result);
 		}
 
 	// If user issued PUT command
 	} else if(cmd == D_PUT) {
 
+		// Create the text to store on the heap
+		char* copytext = malloc(strlen(text) + 1);
+		strncpy(copytext, text, strlen(text) + 1);
+
 		// If item exists, or table is full then -1
-		int is_error = createItem(*key, *text); // TODO synchronise
+		int is_error = createItem(*key, copytext); // TODO synchronise
 
 		// Check if result exists
 		if(is_error == 0) {

@@ -105,13 +105,13 @@ void* worker(void* args) {
     	fprintf(stderr, "Send message failure, worker %d.\n", data->worker_num);
     	return 0; // TODO change
     }
+
     char client_message[MAX_MESSAGE_SIZE];
 
     while(true)
     {
     	memset(client_message, 0, 256);
 
-    	// TODO: new issue, if the client disconnects we get weird looping again
     	int read_size = read_message(data, &client_message);
 
     	// DEBUG_PRINT(("Data port(%d), socket(%d), type(%d), worker(%d).\n", data->port, data->s, data->type, data->worker_num));

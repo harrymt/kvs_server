@@ -80,7 +80,8 @@ void my_assert_equals(char* a, char* b, char* test_name) {
 		sprintf(o, "ASSERTION FAILED: %s: ('%s' != '%s')", test_name, a, b);
 		perro(o);
 	} else {
-		printf("%s: Passed, (%s == %s).\n", test_name, a, b);
+		printf("%s: Passed.\n", test_name);
+		DEBUG_PRINT(("(%s == %s)\n", a, b));
 	}
 }
 
