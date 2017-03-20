@@ -20,14 +20,14 @@ CFLAGS=-Wall -Wextra -pthread -std=gnu99 -O3
 build: clean $(ALL_OBJECTS) makefile
 	gcc -o $(B_DIR)/$(SOURCE) $(ALL_OBJECTS)
 
-tests:
-	gcc -I . $(CFLAGS) -o $(T_DIR)/$(T_DIR) $(T_DIR)/test_client.c $(T_DIR)/$(T_DIR).c $(OBJECTS)
+tests: clean $(T_DIR)/test_client.c $(T_DIR)/$(T_DIR).c $(OBJECTS)
+	gcc -I . $(CFLAGS) -o $(B_DIR)/$(T_DIR) $(T_DIR)/test_client.c $(T_DIR)/$(T_DIR).c $(OBJECTS)
 
 run:
 	./$(B_DIR)/$(SOURCE) $(PARAMETERS)
 	
 run_tests:
-	./$(T_DIR)/$(T_DIR)
+	./$(T_DIR)/$(T_DIR) $(PARAMETERS)
 
 $(B_DIR)/%.o : $(S_DIR)/%.c
 	gcc $(CFLAGS) $(CLINTS) -c $< -o $@

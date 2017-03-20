@@ -217,16 +217,16 @@ int parse_message_with_data_protocol(void* message) {
  * stores the result to give back to the client in the message parameter,
  * returns an enum about what to do next.
  */
-enum RETURN_TYPE run_command(struct socket_info *data, void* message) {
+enum RETURN_TYPE run_command(int type, void* message) {
 
-	if(data->type == DATA) {
+	if(type == DATA) {
 		return parse_message_with_data_protocol(message);
 
-	} else if (data->type == CONTROL) {
+	} else if (type == CONTROL) {
     	return parse_message_with_control_protocol(message);
 
 	} else {
-		DEBUG_PRINT(("Not a recognised type! %d\n", data->type));
+		DEBUG_PRINT(("Not a recognised type! %d\n", type));
 	}
 
 	return R_SUCCESS;
