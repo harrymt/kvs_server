@@ -19,35 +19,13 @@
 #include "../source/socket-helper.h"
 #include "test_client.h"
 
+void test_data_server(int dport) {
 
-void my_assert_equals(char* a, char* b, char* test_name) {
-	int test_success = strcmp(a, b);
-	if(test_success) {
-		char o[512];
-		sprintf(o, "ASSERTION FAILED: %s: ('%s' != '%s')", test_name, a, b);
-		perro(o);
-	} else {
-		printf("> Passed: '%s'\n", test_name);
-	}
-	fflush(stdout);
-}
-
-int main(int argc, char** argv) {
-	if (argc != 3) {
-		printf("Usage: %s data-port control-port\n", argv[0]);
-		exit(-1);
-	}
-
-	/* Setup control and data ports. */
-	int cport = atoi(argv[2]), dport = atoi(argv[1]);
-
-	// Start a test server
-	start_test_server(dport, DATA);
 
 	// Connect to Data server with a port
 	int datac = connect_to_server(dport);
 
-	// Run tests
+	// Run tests on data
 	my_assert_equals("0", "0", "Testing my assert equals function.");
 	test_cmd("COUNT\n", "0\n", "Count test.", datac);
 	test_cmd("COUNT\n", "0\n", "Count test twice.", datac);
@@ -69,32 +47,74 @@ int main(int argc, char** argv) {
 	test_cmd("\n", "", "Leave test.", datac);
 	leave_server(datac);
 
-	// Start the control server
-	start_test_server(cport, CONTROL);
-
-	// Connect to Control server with a port
-	int controlc = connect_to_server(cport);
-
-	// Run tests
-	test_cmd("COUNT", "1\n", "Count test on control retains value.", controlc);
-
-	leave_server(controlc);
-
 	// Run multi connection tests
-	// TODO: Fails atm, fix it!
-	datac = connect_to_server(dport);
+	int datac2 = connect_to_server(dport);
+	test_cmd("COUNT\n", "1\n", "Count multi connections test.", datac2);
+
 	int second_datac = connect_to_server(dport);
-	test_cmd("COUNT\n", "1\n", "Count multi connections test A.", datac);
+	test_cmd("COUNT\n", "1\n", "Count multi connections test A.", datac2);
 	test_cmd("COUNT\n", "1\n", "Count multi connections test B.", second_datac);
 
+	test_cmd("PUT fruit Apple\n", "Success.\n", "Count multi connections PUT.", datac2);
+	test_cmd("GET fruit\n", "Apple\n", "Count multi connections GET.", second_datac);
+	test_cmd("\n", "", "Leave test again.", second_datac);
+	test_cmd("\n", "", "Leave test multi again.", datac2);
+
+	// Test 4+ connections
+	int cmd[NTHREADS + 1];
+	for(int i = 0; i < NTHREADS + 1; i++) {
+		cmd[i] = connect_to_server(dport);
+		test_cmd("COUNT\n", "2\n", "Count 4+ multi connections.", cmd[i]);
+		if(i == NTHREADS) {
+			test_cmd("\n", "", "Leave test.", cmd[i]);
+		}
+	}
+	for(int i = 0; i < NTHREADS; i++) {
+		test_cmd("\n", "", "Leave test.", cmd[i]);
+	}
+
+}
+
+void test_control_server(int cport) {
+
+
+	// Connect to Control server with a port // TODO enable
+//	int controlc = connect_to_server(cport);
+//
+//	// Run tests on control
+//	test_cmd("COUNT", "1\n", "Count test on control retains value.", controlc);
+//	test_cmd("\n", "", "Leave control test.", controlc);
+//	leave_server(controlc);
+
 	// Test leave server
-	controlc = connect_to_server(cport);
-	test_cmd("SHUTDOWN", "Shutting down.\n", "Test successful shutdown.", controlc);
-	leave_server(controlc);
+//	controlc = connect_to_server(cport);
+//	test_cmd("SHUTDOWN", "Shutting down.\n", "Test successful shutdown.", controlc);
+//	leave_server(controlc);
+
+}
+
+int main(int argc, char** argv) {
+	if (argc != 3) {
+		printf("Usage: %s data-port control-port\n", argv[0]);
+		exit(-1);
+	}
+
+	/* Setup control and data ports. */
+	int cport = atoi(argv[2]), dport = atoi(argv[1]);
+
+	// Start a test server
+	start_test_server(dport, DATA);
+	// Start the control server
+//	start_test_server(cport, CONTROL); // TODO enable
+
+	test_data_server(dport);
+	test_control_server(cport);
 
 	stop_server(DATA);
-	stop_server(CONTROL);
+//	stop_server(CONTROL); // TODO enable
 
 	printf("==== SUCCESS ====\nAll tests pass\n");
 	return 0;
 }
+
+

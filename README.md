@@ -6,6 +6,16 @@ Requires Make and gcc are installed on your system.
 
 Program is black box tested, using my own [test harness](/tests).
 
+
+### TODO
+
+- `poll()` instead of `accept()`
+- DONE: Create an array of worker threads at the start, and then use an array of structs
+- For testing, create a worker pool
+- Create another thread pool for the control thread
+- Check error, if I close a terminal, all terminals exit!
+- Make kvs threadsafe
+
 ### Build
 
 `make`

@@ -15,93 +15,71 @@
 #include "debug.h"
 #include "protocol_manager.h"
 #include "socket-helper.h"
-#include "queue.h"
-
-#define MAX_MESSAGE_SIZE 2000
+#include "server_helpers.h"
+#include "message_manager.h"
 
 pthread_mutex_t mutex_kill = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cond_kill = PTHREAD_COND_INITIALIZER;
 int server_port_that_wants_to_die = 0;
 
-pthread_t worker_threads[NTHREADS];
-int worker_ids[NTHREADS];
-struct worker_configuration *worker_thread_pool;
-
-int queue_index = -1;
-#define MAX_QUEUE_SIZE 10
-struct queue_item *queue;
-
-
+queue_item *queue;
 pthread_cond_t Buffer_Not_Full=PTHREAD_COND_INITIALIZER;
 pthread_cond_t Buffer_Not_Empty=PTHREAD_COND_INITIALIZER;
 pthread_mutex_t consuming=PTHREAD_MUTEX_INITIALIZER;
-
-
-// TODO get total number of workers working, maybe just have a semaphore???
+pthread_t worker_threads[NTHREADS];
+struct worker_configuration *worker_thread_pool;
+int queue_index = -1;
 
 /**
+ * Like the main function.
  *
  */
-int read_message(int socket, void* message) {
-	int is_error = read(socket, message, 255);
+int initiate_server(int cport, int dport) {
+	pthread_t data_thread = pthread_self(), control_thread = pthread_self();
 
-	if(is_error < 0) {
-		perro("Read Message failed!");
-		pthread_exit(NULL);
-	}
+	struct server_config *data_info = malloc(sizeof(struct server_config));
+	struct server_config *control_info = malloc(sizeof(struct server_config));
+	data_info->port = dport;
+	data_info->type = DATA;
+	control_info->port = cport;
+	control_info->type = CONTROL;
 
-	return is_error;
-}
+	int number_of_servers_alive = 2;
+	start_server(data_info, data_thread);
+//	start_server(control_info, control_thread); // TODO enable me
 
-/**
- * Send message to the connected client.
- * TODO add params
- */
-bool send_message(int socket, void* message) {
-    int is_error = write(socket, message, strlen(message));
+	printf("Server started.\n");
 
-    if (is_error == -1 && (errno == ECONNRESET || errno == EPIPE))
-    {
-    	// TODO there is an error here... when 1 client disconnects, others cant reconnect
-    	fprintf(stderr, "Socket %d disconnected.\n", socket);
-        return false;
-    }
-    else if (is_error == -1)
-    {
-    	perro("Unexpected error in send_message()!");
-        pthread_exit(NULL);
-        return false;
-    }
+	pthread_mutex_lock(&mutex_kill);
+	while(server_port_that_wants_to_die == 0) {
+		pthread_cond_wait(&cond_kill, &mutex_kill); // wait on a condition variable
 
-    return true;
-}
+		if(server_port_that_wants_to_die == cport) {
+			DEBUG_PRINT(("OK: Killing control server port:%d.\n", cport));
+			pthread_join(control_thread, NULL);
+			number_of_servers_alive--;
 
+			DEBUG_PRINT(("OK: Killing data server port:%d.\n", dport));
+			pthread_join(data_thread, NULL);
+			number_of_servers_alive--;
 
-void get_initial_message(int type, int worker, void* message) {
-	char* data_message = "Welcome to the KV store.\n"; // \n
-	char* control_message = "Welcome to the server.\n"; // \n
-	if(type == CONTROL) {
-		if(DEBUG) {
-			sprintf(message, "%s (worker %d).\n", control_message, worker);
+			server_port_that_wants_to_die = 0;
 		} else {
-			sprintf(message, "%s", control_message);
+			DEBUG_PRINT(("BAD: Oh dear, trying to kill server that we don't have %d, ignore it.\n", server_port_that_wants_to_die));
+			exit(1); // TODO remove me
 		}
-	} else if(type == DATA) {
-		if(DEBUG) {
-			sprintf(message, "%s(worker %d).\n", data_message, worker);
-		} else {
-			sprintf(message, "%s", data_message);
+		pthread_mutex_unlock(&mutex_kill);
+
+		if(number_of_servers_alive == 0) {
+			printf("Shutting down.\n");
+			DEBUG_PRINT(("OK: All servers are dead, stopping main thread num:%d.\n", number_of_servers_alive));
+			break;
 		}
 	}
+
+	shutdown_worker_thread_pool();
+	return 0;
 }
-
-void make_worker_available(int worker_number) {
-	if(worker_number > NTHREADS) { perror("WARNING worker number doesn't exist, too high!"); }
-	worker_thread_pool[worker_number].is_available = 0;
-}
-
-
-
 
 void* worker(void* args) {
 	/* Extract the thread arguments */
@@ -125,21 +103,13 @@ void* worker(void* args) {
 		printf("Worker %d executing queue item %d.\n", worker_number, current_queue_item);
 		printf("current_queue_connection: sock %d, type %d, port %d\n", current_queue_connection.sock, current_queue_connection.type, current_queue_connection.port);
 
-		/* This tells the pthreads library that no other thread is going to
-		   join() this thread. This means that, once this thread terminates,
-		   its resources can be safely freed (instead of keeping them around
-		   so they can be collected by another thread join()-ing this thread) */
-	   // pthread_detach(pthread_self());
-
 		char initial_message[512];
 		get_initial_message(current_queue_connection.type, worker_number, initial_message);
 
-		bool still_connected = send_message(current_queue_connection.sock, &initial_message);
-		if(!still_connected) {
-			// TODO this could be a function
-			fprintf(stderr, "Send message failure, worker %d.\n", worker_number);
-			return 0; // TODO change
-		}
+		error_handler(
+			send_message(current_queue_connection.sock, &initial_message),
+			"Send message failure.\n"
+		);
 
 		char client_message[MAX_MESSAGE_SIZE];
 
@@ -148,22 +118,18 @@ void* worker(void* args) {
 			memset(client_message, 0, 256);
 
 			int read_size = read_message(current_queue_connection.sock, &client_message);
-
-			// DEBUG_PRINT(("Data port(%d), socket(%d), type(%d), worker(%d).\n", data->port, data->s, data->type, data->worker_num));
-
 			int is_success = run_command(current_queue_connection.type, &client_message);
 
 			// Send message back to the client
-			bool is_successful = send_message(current_queue_connection.sock, &client_message);
-			if(!is_successful) {
-				// TODO this could be a function
-				fprintf(stderr, "Send message failure, worker %d.\n", worker_number);
-				break;
-			}
+			error_handler(
+				send_message(current_queue_connection.sock, &client_message),
+				"Send message failure.\n"
+			);
 
 			if(is_success == R_DEATH) { // They want to die
 				close(current_queue_connection.sock);
 				break;
+
 			} else if(is_success == R_SHUTDOWN) {
 				printf("Shutting down.\n");
 				pthread_mutex_lock(&mutex_kill);
@@ -172,61 +138,11 @@ void* worker(void* args) {
 				pthread_mutex_unlock(&mutex_kill);
 			}
 		}
-
-//		make_worker_available(worker_number);  // Make this worker available again
 	}
 
     return 0;
 }
 
-
-int find_available_worker_thread() {
-	for(int i = 0; i < NTHREADS; i++) {
-		if(worker_thread_pool[i].is_available == 0) {
-			// Available
-			worker_thread_pool[i].is_available = 1; // Set unavailable
-			return i;
-		}
-	}
-	return -1; // Error
-}
-
-
-void init_worker_threads() {
-    for(int w = 0; w < NTHREADS; w++) {
-    	struct worker_configuration newThread;
-    	newThread.worker_number = w;
-    	newThread.is_available = 0; // Set available
-    	worker_ids[w] = w;
-
-    	printf("Creating new thread %d\n", worker_ids[w]);
-
-		if (pthread_create(&worker_threads[w], NULL, worker, &worker_ids[w]) != 0) {
-			perro("Could not create a worker thread");
-			break;
-		}
-
-		newThread.thread = &worker_threads[w];
-    	worker_thread_pool[w] = newThread;
-    }
-}
-
-void shutdown_worker_thread_pool() {
-	for(int w = 0; w < NTHREADS; w++) {
-		pthread_join(worker_threads[w], NULL);
-	}
-}
-
-void queue_add(int type, int sock, int port) {
-	queue_index++;
-
-	// Add item to queue
-	struct queue_item i;
-	i.sock = sock;
-	i.port = port;
-	i.type = type;
-	queue[queue_index] = i;
-}
 
 
 void *server_listen(void* args) {
@@ -268,9 +184,15 @@ void *server_listen(void* args) {
 		{
 			pthread_cond_wait(&Buffer_Not_Full, &consuming);
 		}
-		printf("Produce : %d \n", queue_index);
 		// Add to a queue for workers to consume.
-		queue_add(settings->type, connection, settings->port);
+
+		// Create queue item
+		queue_item i;
+		i.sock = connection;
+		i.port = settings->port;
+		i.type = settings->type;
+		add_to_queue(&i);
+		printf("Produce : %d \n", queue_index);
 		pthread_mutex_unlock(&consuming);
 
 		// Signal consumers to consume the queue
@@ -281,97 +203,32 @@ void *server_listen(void* args) {
 }
 
 
-/**
- * Handle creating a new server thread with the port information.
- */
-void start_server(struct server_config *i, pthread_t t) {
-	if (pthread_create(&t, NULL, server_listen, i) < 0) {
-		perro("Could not start server.");
-		exit(-1);
-	}
 
-	DEBUG_PRINT(("OK: Successfully started server listening on port:%d.\n", ((struct server_config *)i)->port));
-}
 
-int initiate_server(int cport, int dport) {
-	pthread_t data_thread = pthread_self(), control_thread = pthread_self();
+void init_worker_threads() {
+    for(int w = 0; w < NTHREADS; w++) {
+    	printf("Creating new thread %d\n", w);
 
-	struct server_config *data_info = malloc(sizeof(struct server_config));
-	struct server_config *control_info = malloc(sizeof(struct server_config));
-	data_info->port = dport;
-	data_info->type = DATA;
-	control_info->port = cport;
-	control_info->type = CONTROL;
-
-	int number_of_servers_alive = 2;
-	start_server(data_info, data_thread);
-//	start_server(control_info, control_thread);
-
-	printf("Server started.\n");
-
-	pthread_mutex_lock(&mutex_kill);
-	while(server_port_that_wants_to_die == 0) {
-		pthread_cond_wait(&cond_kill, &mutex_kill); // wait on a condition variable
-
-		if(server_port_that_wants_to_die == cport) {
-			DEBUG_PRINT(("OK: Killing control server port:%d.\n", cport));
-			pthread_join(control_thread, NULL);
-			number_of_servers_alive--;
-
-			DEBUG_PRINT(("OK: Killing data server port:%d.\n", dport));
-			pthread_join(data_thread, NULL);
-			number_of_servers_alive--;
-
-			server_port_that_wants_to_die = 0;
-		} else {
-			DEBUG_PRINT(("BAD: Oh dear, trying to kill server that we don't have %d, ignore it.\n", server_port_that_wants_to_die));
-			exit(1); // TODO remove me
-		}
-		pthread_mutex_unlock(&mutex_kill);
-
-		if(number_of_servers_alive == 0) {
-			printf("Shutting down.\n");
-			DEBUG_PRINT(("OK: All servers are dead, stopping main thread num:%d.\n", number_of_servers_alive));
+		if (pthread_create(&worker_threads[w], NULL, worker, &w) != 0) {
+			perro("Could not create a worker thread");
 			break;
 		}
-	}
 
-	// TODO destroy any Mutexs or condition variables
-
-	return 0;
+		struct worker_configuration newThread;
+		newThread.worker_number = w;
+		newThread.thread = &worker_threads[w];
+    	worker_thread_pool[w] = newThread;
+    }
 }
 
+void shutdown_worker_thread_pool() {
+	for(int w = 0; w < NTHREADS; w++) {
+		pthread_join(worker_threads[w], NULL);
+	}
+}
 
-
-
-
-
-
-// TODO lock worker pool?
-//		int worker_number = find_available_worker_thread();
-//		while((worker_number = find_available_worker_thread()) == -1) {
-//			// BLOCK until some workers are available
-//		}
-//		our_socket->worker_num = worker_number;
-//		printf("Delegating to worker %d.\n", worker_number);
-//		if (pthread_create(&worker_threads[worker_number], NULL, worker, our_socket) != 0) {
-//			perro("Could not create a worker thread");
-//			break;
-//		}
-// TODO unlock worker pool?
-
-
-//void setup_data_thread_pool(pthread_t* threads) {
-//	pthread_t markerT[100];
-//
-//	/* Create S student threads */
-//	for (i = 0; i < parameters.S; i++) {
-//	  if(pthread_create(&studentT[i], NULL, student, &studentID[i])) {
-//		fprintf(stderr, "Error creating student thread, student %d\n", i);
-//		exit(1);
-//	  }
-//	}
-//
-//}
-
+void add_to_queue(queue_item *item) {
+	queue_index++;
+	queue[queue_index] = *item;
+}
 

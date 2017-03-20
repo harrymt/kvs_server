@@ -23,9 +23,21 @@
 pthread_t control_thread;
 pthread_t data_thread;
 
+void my_assert_equals(char* a, char* b, char* test_name) {
+	int test_success = strcmp(a, b);
+	if(test_success) {
+		char o[512];
+		sprintf(o, "ASSERTION FAILED: %s: ('%s' != '%s')", test_name, a, b);
+		perro(o);
+	} else {
+		printf("> Passed: '%s'\n", test_name);
+	}
+	fflush(stdout);
+}
+
 
 void start_test_server(int port, enum SERVER_TYPE type) {
-	struct socket_info *data_info = malloc(sizeof(struct socket_info));
+	struct server_config *data_info = malloc(sizeof(struct server_config));
 	data_info->port = port;
 	data_info->type = type;
 	if(type == CONTROL) {

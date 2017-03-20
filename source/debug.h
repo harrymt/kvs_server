@@ -17,6 +17,11 @@
   # define DEBUG_PRINT(x) do {} while (0)
   #endif
 
+inline void error_handler(int is_error, char* message) {
+	if(is_error == 1) {
+		perror(message);
+	}
+}
 
 #define perro(x) {fprintf(stderr, "%s:%d: %s: %s\n", __FILE__, __LINE__, x, strerror(errno));exit(1);}
 

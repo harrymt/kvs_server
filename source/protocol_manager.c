@@ -227,6 +227,7 @@ enum RETURN_TYPE run_command(int type, void* message) {
 
 	} else {
 		DEBUG_PRINT(("Not a recognised type! %d\n", type));
+		perror("Invalid command found.");
 	}
 
 	return R_SUCCESS;
