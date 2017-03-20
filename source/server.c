@@ -117,6 +117,12 @@ void* worker(void* args) {
 			memset(client_message, 0, 256);
 
 			int read_size = read_message(current_queue_connection.sock, &client_message);
+
+			if(read_size == 0) {
+				DEBUG_PRINT(("Client disconnected, read_size: %d.", read_size));
+				break;
+			}
+
 			int is_success = run_command(current_queue_connection.type, &client_message);
 
 			// Send message back to the client
