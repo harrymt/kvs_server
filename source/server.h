@@ -5,6 +5,7 @@
 #define _server_h_
 
 #include <pthread.h>
+#include <semaphore.h>
 
 #define NTHREADS 4
 #define LISTEN_BACKLOG 10
@@ -14,13 +15,6 @@
 #define perro(x) {fprintf(stderr, "%s:%d: %s: %s\n", __FILE__, __LINE__, x, strerror(errno));exit(1);}
 
 enum SERVER_TYPE { CONTROL, DATA };
-
-typedef struct queue_item
-{
-	int port;
-	int sock;
-	int type;
-} queue_item;
 
 struct server_config
 {
@@ -41,8 +35,6 @@ void* worker(void* args);
 void start_server(struct server_config *i, pthread_t t);
 void *server_listen(void* args);
 int initiate_server(int cport, int dport);
-void init_worker_threads();
-void shutdown_worker_thread_pool();
-void add_to_queue(queue_item *item);
+void init_worker_pool();
 
 #endif

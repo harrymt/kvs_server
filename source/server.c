@@ -1,4 +1,7 @@
 /* Server program for key-value store. */
+
+#include "server.h"
+
 #include <sys/socket.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -7,28 +10,29 @@
 #include <sys/types.h>
 #include <string.h>
 #include <pthread.h>
+#include <semaphore.h>
 #include <errno.h>
 #include <unistd.h>
 #include "kv.h"
 #include "parser.h"
-#include "server.h"
 #include "debug.h"
 #include "protocol_manager.h"
 #include "socket-helper.h"
 #include "server_helpers.h"
 #include "message_manager.h"
+#include "queue.h"
 
 pthread_mutex_t mutex_kill = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cond_kill = PTHREAD_COND_INITIALIZER;
 int server_port_that_wants_to_die = 0;
 
-queue_item *queue;
-pthread_cond_t Buffer_Not_Full=PTHREAD_COND_INITIALIZER;
-pthread_cond_t Buffer_Not_Empty=PTHREAD_COND_INITIALIZER;
-pthread_mutex_t consuming=PTHREAD_MUTEX_INITIALIZER;
+bool is_shutdown = false;
+
+// The queue for producer and consumers
+Queue *worker_queue;
+
 pthread_t worker_threads[NTHREADS];
 struct worker_configuration *worker_thread_pool;
-int queue_index = -1;
 
 /**
  * Like the main function.
@@ -44,9 +48,15 @@ int initiate_server(int cport, int dport) {
 	control_info->port = cport;
 	control_info->type = CONTROL;
 
+    // Setup a queue for workers to consume
+    worker_queue = make_queue(MAX_QUEUE_SIZE);
+
+    // Start all the workers for data threads
+	init_worker_pool();
+
 	int number_of_servers_alive = 2;
 	start_server(data_info, data_thread);
-//	start_server(control_info, control_thread); // TODO enable me
+	start_server(control_info, control_thread); // TODO enable me
 
 	printf("Server started.\n");
 
@@ -77,7 +87,6 @@ int initiate_server(int cport, int dport) {
 		}
 	}
 
-	shutdown_worker_thread_pool();
 	return 0;
 }
 
@@ -85,23 +94,13 @@ void* worker(void* args) {
 	/* Extract the thread arguments */
 	int worker_number = *(int*)args;
 
+	pthread_detach(pthread_self());
+
 	printf("Worker %d created, waiting for new tasks...\n", worker_number);
 	bool running = true;
 	while(running) {
-		pthread_mutex_lock(&consuming);
-		while(queue_index < 0) // While there is nothing in the queue
-		{
-			pthread_cond_wait(&Buffer_Not_Empty, &consuming);
-		}
-		printf("Consuming queue index : %d \n", queue_index);
-		int current_queue_item = queue_index;
-		struct queue_item current_queue_connection = queue[current_queue_item];
-		queue_index--; // pop item off queue
-		pthread_mutex_unlock(&consuming);
-		pthread_cond_signal(&Buffer_Not_Full);
 
-		printf("Worker %d executing queue item %d.\n", worker_number, current_queue_item);
-		printf("current_queue_connection: sock %d, type %d, port %d\n", current_queue_connection.sock, current_queue_connection.type, current_queue_connection.port);
+		queue_item current_queue_connection = queue_pop(worker_queue);
 
 		char initial_message[512];
 		get_initial_message(current_queue_connection.type, worker_number, initial_message);
@@ -132,18 +131,19 @@ void* worker(void* args) {
 
 			} else if(is_success == R_SHUTDOWN) {
 				printf("Shutting down.\n");
+				close(current_queue_connection.sock);
 				pthread_mutex_lock(&mutex_kill);
 				server_port_that_wants_to_die = current_queue_connection.port;
 				pthread_cond_signal(&cond_kill);
 				pthread_mutex_unlock(&mutex_kill);
+				running = false;
+				break;
 			}
 		}
 	}
 
     return 0;
 }
-
-
 
 void *server_listen(void* args) {
 
@@ -156,20 +156,11 @@ void *server_listen(void* args) {
 	struct sockaddr_in peer_addr;
     socklen_t peer_address;
 
-    // Setup a queue for workers to consume
-    queue_index = -1;
-    queue = malloc(sizeof(struct queue_item) * MAX_QUEUE_SIZE);
-
-    // Setup a number of workers
-    worker_thread_pool = malloc(sizeof(struct worker_configuration) * NTHREADS);
-
-    // Start all the workers for data threads
-	init_worker_threads();
-
 	int running = true;
 	while(running) {
-		// Wait for connection
 		peer_address = sizeof(struct sockaddr_in);
+
+		// Wait for connection
 		int connection = accept(server_socket, (struct sockaddr *) &peer_addr, &peer_address);
 
 		if (connection == -1) {
@@ -178,35 +169,19 @@ void *server_listen(void* args) {
 			continue;
 		}
 
-		printf("Got a connection.\n");
-		pthread_mutex_lock(&consuming);
-		if(queue_index == MAX_QUEUE_SIZE)
-		{
-			pthread_cond_wait(&Buffer_Not_Full, &consuming);
-		}
-		// Add to a queue for workers to consume.
-
-		// Create queue item
-		queue_item i;
-		i.sock = connection;
-		i.port = settings->port;
-		i.type = settings->type;
-		add_to_queue(&i);
-		printf("Produce : %d \n", queue_index);
-		pthread_mutex_unlock(&consuming);
-
-		// Signal consumers to consume the queue
-		pthread_cond_signal(&Buffer_Not_Empty);
-
+		// Create queue item & add it to the consumer queue
+		queue_item i = {.sock = connection, .port = settings->port, .type = settings->type };
+		queue_push(worker_queue, i);
 	}
 	return 0;
 }
 
 
+void init_worker_pool() {
+    // Setup a number of workers
+	worker_thread_pool = malloc(sizeof(struct worker_configuration) * NTHREADS);
 
-
-void init_worker_threads() {
-    for(int w = 0; w < NTHREADS; w++) {
+	for(int w = 0; w < NTHREADS; w++) {
     	printf("Creating new thread %d\n", w);
 
 		if (pthread_create(&worker_threads[w], NULL, worker, &w) != 0) {
@@ -219,16 +194,5 @@ void init_worker_threads() {
 		newThread.thread = &worker_threads[w];
     	worker_thread_pool[w] = newThread;
     }
-}
-
-void shutdown_worker_thread_pool() {
-	for(int w = 0; w < NTHREADS; w++) {
-		pthread_join(worker_threads[w], NULL);
-	}
-}
-
-void add_to_queue(queue_item *item) {
-	queue_index++;
-	queue[queue_index] = *item;
 }
 

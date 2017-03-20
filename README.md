@@ -11,8 +11,8 @@ Program is black box tested, using my own [test harness](/tests).
 
 - `poll()` instead of `accept()`
 - DONE: Create an array of worker threads at the start, and then use an array of structs
-- For testing, create a worker pool
-- Create another thread pool for the control thread
+- DONE: For testing, create a worker pool
+- DONE: Create another thread pool for the control thread - uses same
 - Check error, if I close a terminal, all terminals exit!
 - Make kvs threadsafe
 

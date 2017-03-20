@@ -37,13 +37,13 @@ void my_assert_equals(char* a, char* b, char* test_name) {
 
 
 void start_test_server(int port, enum SERVER_TYPE type) {
-	struct server_config *data_info = malloc(sizeof(struct server_config));
-	data_info->port = port;
-	data_info->type = type;
+	struct server_config *config = malloc(sizeof(struct server_config));
+	config->port = port;
+	config->type = type;
 	if(type == CONTROL) {
-		start_server(data_info, control_thread);
+		start_server(config, control_thread);
 	} else if (type == DATA) {
-		start_server(data_info, data_thread);
+		start_server(config, data_thread);
 	}
 }
 

@@ -19,21 +19,25 @@
 #include "../source/socket-helper.h"
 #include "test_client.h"
 
-void test_multi_connections(void* args) {
+void* test_multi_connections(void* args) {
 	int port = *(int *) args;
 	int fd = connect_to_server(port);
 	test_cmd("COUNT\n", "2\n", "Count 4+ multi connections.", fd);
 	test_cmd("\n", "", "Leave test.", fd);
+
+	return NULL;
 }
 
-void test_multi_connections_lots(void* args) {
+void* test_multi_connections_lots(void* args) {
 	int port = *(int *) args;
 	int fd = connect_to_server(port);
-	for(int i = 0; i < 100; i++) {
+	for(int i = 0; i < 10; i++) {
 		test_cmd("COUNT\n", "2\n", "Count 4+ multi connections lots.", fd);
-		sleep(1);
+//		sleep(1);
 	}
 	test_cmd("\n", "", "Leave test.", fd);
+
+	return NULL;
 }
 
 void test_data_server(int dport) {
@@ -99,17 +103,17 @@ void test_control_server(int cport) {
 
 
 	// Connect to Control server with a port // TODO enable
-//	int controlc = connect_to_server(cport);
-//
-//	// Run tests on control
-//	test_cmd("COUNT", "1\n", "Count test on control retains value.", controlc);
-//	test_cmd("\n", "", "Leave control test.", controlc);
-//	leave_server(controlc);
+	int controlc = connect_to_server(cport);
+
+	// Run tests on control
+	test_cmd("COUNT", "2\n", "Count test on control retains value.", controlc);
+	test_cmd("\n", "", "Leave control test.", controlc);
+	leave_server(controlc);
 
 	// Test leave server
-//	controlc = connect_to_server(cport);
-//	test_cmd("SHUTDOWN", "Shutting down.\n", "Test successful shutdown.", controlc);
-//	leave_server(controlc);
+	controlc = connect_to_server(cport);
+	test_cmd("SHUTDOWN", "Shutting down.\n", "Test successful shutdown.", controlc);
+	leave_server(controlc);
 
 }
 
@@ -127,13 +131,13 @@ int main(int argc, char** argv) {
 	// Start a test server
 	start_test_server(dport, DATA);
 	// Start the control server
-//	start_test_server(cport, CONTROL); // TODO enable
+	start_test_server(cport, CONTROL); // TODO enable
 
 	test_data_server(dport);
 	test_control_server(cport);
 
 	stop_server(DATA);
-//	stop_server(CONTROL); // TODO enable
+	stop_server(CONTROL); // TODO enable
 
 	printf("==== SUCCESS ====\nAll tests pass\n");
 	return 0;
