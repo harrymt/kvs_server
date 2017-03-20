@@ -19,14 +19,28 @@
 #include "../source/socket-helper.h"
 #include "test_client.h"
 
+void test_multi_connections(void* args) {
+	int port = *(int *) args;
+	int fd = connect_to_server(port);
+	test_cmd("COUNT\n", "2\n", "Count 4+ multi connections.", fd);
+	test_cmd("\n", "", "Leave test.", fd);
+}
+
+void test_multi_connections_lots(void* args) {
+	int port = *(int *) args;
+	int fd = connect_to_server(port);
+	for(int i = 0; i < 100; i++) {
+		test_cmd("COUNT\n", "2\n", "Count 4+ multi connections lots.", fd);
+		sleep(1);
+	}
+	test_cmd("\n", "", "Leave test.", fd);
+}
+
 void test_data_server(int dport) {
-
-
 	// Connect to Data server with a port
 	int datac = connect_to_server(dport);
 
 	// Run tests on data
-	my_assert_equals("0", "0", "Testing my assert equals function.");
 	test_cmd("COUNT\n", "0\n", "Count test.", datac);
 	test_cmd("COUNT\n", "0\n", "Count test twice.", datac);
 
@@ -61,18 +75,24 @@ void test_data_server(int dport) {
 	test_cmd("\n", "", "Leave test multi again.", datac2);
 
 	// Test 4+ connections
-	int cmd[NTHREADS + 1];
-	for(int i = 0; i < NTHREADS + 1; i++) {
-		cmd[i] = connect_to_server(dport);
-		test_cmd("COUNT\n", "2\n", "Count 4+ multi connections.", cmd[i]);
-		if(i == NTHREADS) {
-			test_cmd("\n", "", "Leave test.", cmd[i]);
+	int number = NTHREADS + 10;
+	pthread_t threads[number];
+	for(int i = 0; i < number; i++) {
+		if (pthread_create(&(threads[i]), NULL, test_multi_connections, &dport) < 0) {
+			perro("Could not start server.");
+			exit(-1);
 		}
 	}
-	for(int i = 0; i < NTHREADS; i++) {
-		test_cmd("\n", "", "Leave test.", cmd[i]);
-	}
 
+	// Test 4+ connections
+	int number2 = NTHREADS + 10;
+	pthread_t threads2[number2];
+	for(int i = 0; i < number2; i++) {
+		if (pthread_create(&(threads2[i]), NULL, test_multi_connections_lots, &dport) < 0) {
+			perro("Could not start server.");
+			exit(-1);
+		}
+	}
 }
 
 void test_control_server(int cport) {
@@ -101,6 +121,8 @@ int main(int argc, char** argv) {
 
 	/* Setup control and data ports. */
 	int cport = atoi(argv[2]), dport = atoi(argv[1]);
+
+	my_assert_equals("0", "0", "Testing my assert equals function.");
 
 	// Start a test server
 	start_test_server(dport, DATA);
