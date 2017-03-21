@@ -34,6 +34,12 @@ Queue *worker_queue;
 pthread_t worker_threads[NTHREADS];
 struct worker_configuration *worker_thread_pool;
 
+void init_pre_server_setup() {
+    // Setup a queue for workers to consume
+    worker_queue = make_queue(MAX_QUEUE_SIZE);
+    // Start all the workers for data threads
+	init_worker_pool();
+}
 /**
  * Like the main function.
  *
@@ -46,10 +52,9 @@ int initiate_server(int cport, int dport) {
 	data_info->type = DATA;
 	control_info->port = cport;
 	control_info->type = CONTROL;
-    // Setup a queue for workers to consume
-    worker_queue = make_queue(MAX_QUEUE_SIZE);
-    // Start all the workers for data threads
-	init_worker_pool();
+
+	init_pre_server_setup();
+
 	int number_of_servers_alive = 2;
 	start_server(data_info, data_thread);
 	start_server(control_info, control_thread);

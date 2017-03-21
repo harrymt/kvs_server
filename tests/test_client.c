@@ -42,6 +42,8 @@ void start_test_server(int port, enum SERVER_TYPE type) {
 	config->port = port;
 	config->type = type;
 
+	init_pre_server_setup();
+
 	if(type == CONTROL) {
 		start_server(config, control_thread);
 	} else if (type == DATA) {
