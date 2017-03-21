@@ -14,7 +14,7 @@ OBJECTS=$(B_DIR)/socket-helper.o $(B_DIR)/protocol_manager.o $(B_DIR)/parser.o $
 
 # C compiler optimisations and warnings
 # -pthread Library needed for pthread commands
-CFLAGS=-Wall -Wextra -pthread -std=gnu99 -O3
+CFLAGS=-Wall -Wextra -pthread -std=gnu99
 
 
 build: clean $(ALL_OBJECTS) makefile
@@ -27,7 +27,7 @@ run:
 	./$(B_DIR)/$(SOURCE) $(PARAMETERS)
 	
 run_tests:
-	./$(T_DIR)/$(T_DIR) $(PARAMETERS)
+	./$(B_DIR)/$(T_DIR) $(PARAMETERS)
 
 $(B_DIR)/%.o : $(S_DIR)/%.c
 	gcc $(CFLAGS) $(CLINTS) -c $< -o $@

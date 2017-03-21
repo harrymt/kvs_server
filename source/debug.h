@@ -2,6 +2,11 @@
 #ifndef _debug_h_
 #define _debug_h_
 
+#include <string.h>
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+
   /*
    * Debug printf statements.
    * Taken from here: http://stackoverflow.com/a/1941337
@@ -17,12 +22,7 @@
   # define DEBUG_PRINT(x) do {} while (0)
   #endif
 
-inline void error_handler(int is_error, char* message) {
-	if(is_error == 1) {
-		perror(message);
-	}
-}
 
-#define perro(x) {fprintf(stderr, "%s:%d: %s: %s\n", __FILE__, __LINE__, x, strerror(errno));exit(1);}
+#define perror_line(x) { fprintf(stderr, "%s:%d: %s: %s\n", __FILE__, __LINE__, x, strerror(errno)); fflush(stdout); exit(1); }
 
 #endif

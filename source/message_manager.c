@@ -37,7 +37,7 @@ int read_message(int socket, void* message) {
 	int is_error = read(socket, message, LINE);
 
 	if(is_error < 0) {
-		perro("Read message failed!");
+		perror_line("Read message failed!");
 	}
 
 	return is_error;
@@ -54,13 +54,12 @@ int send_message(int socket, void* message) {
     {
     	// TODO there is an error here... when 1 client disconnects, others cant reconnect
     	fprintf(stderr, "Socket %d disconnected.\n", socket);
-        return 1;
+        return -1;
     }
     else if (is_error == -1)
     {
-    	perro("Unexpected error in send_message()!");
-        pthread_exit(NULL);
-        return 1;
+    	perror_line("Unexpected error in send_message()!");
+        return -1;
     }
 
     return 0;

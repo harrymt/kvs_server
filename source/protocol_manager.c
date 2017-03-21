@@ -118,10 +118,9 @@ int parse_message_with_data_protocol(void* message) {
 	char *text = (char*) malloc(LINE * sizeof(char));
 
 	int is_success = parse_d(message, &cmd, key, &text);
-
-	// TODO remove
-//	DEBUG_PRINT(("Is_success %d\n", is_success));
-
+	if(is_success == 2 || is_success == 3) {
+		DEBUG_PRINT(("WARNING parse_d() in protocol_manger.c: Is_success %d\n", is_success));
+	}
 
 	// If user issued COUNT command
 	if(cmd == D_COUNT) {
@@ -227,7 +226,7 @@ enum RETURN_TYPE run_command(int type, void* message) {
 
 	} else {
 		DEBUG_PRINT(("Not a recognised type! %d\n", type));
-		perror("Invalid command found.");
+		perror_line("Invalid command found.");
 	}
 
 	return R_SUCCESS;

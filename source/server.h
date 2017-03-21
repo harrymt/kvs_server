@@ -4,6 +4,7 @@
 #ifndef _server_h_
 #define _server_h_
 
+#include "debug.h"
 #include <pthread.h>
 #include <semaphore.h>
 
@@ -12,7 +13,6 @@
 #define MAX_MESSAGE_SIZE 2000
 #define MAX_QUEUE_SIZE 10
 
-#define perro(x) {fprintf(stderr, "%s:%d: %s: %s\n", __FILE__, __LINE__, x, strerror(errno));exit(1);}
 
 enum SERVER_TYPE { CONTROL, DATA };
 

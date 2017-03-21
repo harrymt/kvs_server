@@ -19,6 +19,7 @@
 #include "../source/debug.h"
 #include "../source/server.h"
 #include "../source/socket-helper.h"
+#include "../source/message_manager.h"
 
 pthread_t control_thread;
 pthread_t data_thread;
@@ -28,7 +29,7 @@ void my_assert_equals(char* a, char* b, char* test_name) {
 	if(test_success) {
 		char o[512];
 		sprintf(o, "ASSERTION FAILED: %s: ('%s' != '%s')", test_name, a, b);
-		perro(o);
+		perror_line(o);
 	} else {
 		printf("> Passed: '%s'\n", test_name);
 	}
@@ -40,6 +41,7 @@ void start_test_server(int port, enum SERVER_TYPE type) {
 	struct server_config *config = malloc(sizeof(struct server_config));
 	config->port = port;
 	config->type = type;
+
 	if(type == CONTROL) {
 		start_server(config, control_thread);
 	} else if (type == DATA) {
@@ -61,37 +63,37 @@ void stop_server(enum SERVER_TYPE type) {
 
 
 void send_cmd(char* input, int connection) {
-	if(write(connection, input, strlen(input) + 1) < 0) perro("send"); // TODO change to write
+	if(write(connection, input, strlen(input) + 1) < 0) perror_line("send"); // TODO change to write
 }
 
-void receive_one_line(char* buf, int connection) {
-	int filled = read(connection, buf, MAX_MSG_LENGTH-1); // TODO change to read
-	buf[filled] = '\0';
-}
 
 int connect_to_server(int port) {
-	int my_test_sock = socket(AF_INET, SOCK_STREAM, 0); if(my_test_sock == -1) perro("Error opening socket");
+	int my_test_sock = socket(AF_INET, SOCK_STREAM, 0); if(my_test_sock == -1) perror_line("Error opening socket");
 
 	struct in_addr server_addr;
-	if(!inet_pton(AF_INET, "127.0.0.1", &server_addr)) perro("inet_aton");
+	if(!inet_pton(AF_INET, "127.0.0.1", &server_addr)) perror_line("inet_aton");
 
 	struct sockaddr_in connection;
 	memcpy(&connection.sin_addr, &server_addr, sizeof(server_addr));
 	connection.sin_family = AF_INET;
 	connection.sin_port = htons(port);
 
-	if (connect(my_test_sock, (const struct sockaddr*) &connection, sizeof(connection)) != 0) perro("Have you started the server?");
+	int sock = connect(my_test_sock, (const struct sockaddr*) &connection, sizeof(connection));
+	if (sock != 0) perror_line("Have you started the server?");
 
-	char output[MAX_MSG_LENGTH] = {0};
-	receive_one_line(output, my_test_sock); // Receive Motd
+	char client_message[LINE];
+	memset(client_message, 0, LINE);
+	int read_size = read_message(my_test_sock, &client_message);
+	client_message[read_size] = '\0';
+	printf("Recevied MOTD.\n"); fflush(stdout);
 	return my_test_sock;
 }
 
 
 void test_cmd(char* cmd, char* res, char* test_name, int connection) {
-	char output[MAX_MSG_LENGTH] = {0};
+	char output[LINE] = {0};
 	send_cmd(cmd, connection);
-	receive_one_line(output, connection);
+	read_message(connection, output);
 	my_assert_equals(output, res, test_name);
 //	sleep(1); // Sleep between test responses
 }

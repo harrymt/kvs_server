@@ -40,24 +40,19 @@ struct worker_configuration *worker_thread_pool;
  */
 int initiate_server(int cport, int dport) {
 	pthread_t data_thread = pthread_self(), control_thread = pthread_self();
-
 	struct server_config *data_info = malloc(sizeof(struct server_config));
 	struct server_config *control_info = malloc(sizeof(struct server_config));
 	data_info->port = dport;
 	data_info->type = DATA;
 	control_info->port = cport;
 	control_info->type = CONTROL;
-
     // Setup a queue for workers to consume
     worker_queue = make_queue(MAX_QUEUE_SIZE);
-
     // Start all the workers for data threads
 	init_worker_pool();
-
 	int number_of_servers_alive = 2;
 	start_server(data_info, data_thread);
-	start_server(control_info, control_thread); // TODO enable me
-
+	start_server(control_info, control_thread);
 	printf("Server started.\n");
 
 	pthread_mutex_lock(&mutex_kill);
@@ -105,10 +100,8 @@ void* worker(void* args) {
 		char initial_message[512];
 		get_initial_message(current_queue_connection.type, worker_number, initial_message);
 
-		error_handler(
-			send_message(current_queue_connection.sock, &initial_message),
-			"Send message failure.\n"
-		);
+		int msg_error = send_message(current_queue_connection.sock, &initial_message);
+		if(!msg_error) { perror_line("Error sending message"); }
 
 		char client_message[MAX_MESSAGE_SIZE];
 
@@ -126,10 +119,9 @@ void* worker(void* args) {
 			int is_success = run_command(current_queue_connection.type, &client_message);
 
 			// Send message back to the client
-			error_handler(
-				send_message(current_queue_connection.sock, &client_message),
-				"Send message failure.\n"
-			);
+
+			msg_error = send_message(current_queue_connection.sock, &client_message);
+			if(!msg_error) { perror_line("Error sending message"); }
 
 			if(is_success == R_DEATH) { // They want to die
 				close(current_queue_connection.sock);
@@ -151,6 +143,11 @@ void* worker(void* args) {
     return 0;
 }
 
+int accept_connection(int sock, struct sockaddr_in *address, socklen_t size) {
+	// TODO change to poll
+	return accept(sock, (struct sockaddr *) address, &size);
+}
+
 void *server_listen(void* args) {
 
 	/* Extract the server config arguments */
@@ -160,17 +157,17 @@ void *server_listen(void* args) {
 	int server_socket = setup_socket(settings->port);
 
 	struct sockaddr_in peer_addr;
-    socklen_t peer_address;
+    socklen_t address_size;
 
 	int running = true;
 	while(running) {
-		peer_address = sizeof(struct sockaddr_in);
-
+		address_size = sizeof(struct sockaddr_in);
+		printf("Waiting for connection...\n"); fflush(stdout);
 		// Wait for connection
-		int connection = accept(server_socket, (struct sockaddr *) &peer_addr, &peer_address);
+		int connection = accept(server_socket, (struct sockaddr *) &peer_addr, &address_size);  // accept_connection(server_socket, &peer_addr, address_size);
 
 		if (connection == -1) {
-			perro("Error accepting connection");
+			perror_line("Error accepting connection");
 			DEBUG_PRINT(("Could not accept a connection, just containing, backlog:%d.\n", LISTEN_BACKLOG));
 			continue;
 		}
@@ -191,7 +188,7 @@ void init_worker_pool() {
     	printf("Creating new thread %d\n", w);
 
 		if (pthread_create(&worker_threads[w], NULL, worker, &w) != 0) {
-			perro("Could not create a worker thread");
+			perror_line("Could not create a worker thread");
 			break;
 		}
 

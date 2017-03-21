@@ -25,14 +25,14 @@
 void *safe_malloc(int size)
 {
   void *p = malloc (size);
-  if (p == NULL) perror ("malloc failed");
+  if (p == NULL) perror_line ("malloc failed");
   return p;
 }
 
 sem_t *make_semaphore(int value)
 {
 	sem_t *sem = safe_malloc(sizeof(sem_t));
-	if (sem_init(sem, 0, value) != 0) perror("sem_init failed");
+	if (sem_init(sem, 0, value) != 0) perror_line("sem_init failed");
 	return sem;
 }
 

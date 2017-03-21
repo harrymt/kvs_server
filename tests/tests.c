@@ -16,6 +16,8 @@
 #include "../source/parser.h"
 #include "../source/debug.h"
 #include "../source/server.h"
+#include "../source/protocol_manager.h"
+#include "../source/queue.h"
 #include "../source/socket-helper.h"
 #include "test_client.h"
 
@@ -41,8 +43,12 @@ void* test_multi_connections_lots(void* args) {
 }
 
 void test_data_server(int dport) {
+	printf("Testing data server...\n"); fflush(stdout);
+
 	// Connect to Data server with a port
 	int datac = connect_to_server(dport);
+
+	printf("Connected to data server %d.\n", datac); fflush(stdout);
 
 	// Run tests on data
 	test_cmd("COUNT\n", "0\n", "Count test.", datac);
@@ -83,7 +89,7 @@ void test_data_server(int dport) {
 	pthread_t threads[number];
 	for(int i = 0; i < number; i++) {
 		if (pthread_create(&(threads[i]), NULL, test_multi_connections, &dport) < 0) {
-			perro("Could not start server.");
+			perror_line("Could not start server.");
 			exit(-1);
 		}
 	}
@@ -93,7 +99,7 @@ void test_data_server(int dport) {
 	pthread_t threads2[number2];
 	for(int i = 0; i < number2; i++) {
 		if (pthread_create(&(threads2[i]), NULL, test_multi_connections_lots, &dport) < 0) {
-			perro("Could not start server.");
+			perror_line("Could not start server.");
 			exit(-1);
 		}
 	}

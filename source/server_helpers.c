@@ -22,7 +22,7 @@
  */
 void start_server(struct server_config *i, pthread_t t) {
 	if (pthread_create(&t, NULL, server_listen, i) < 0) {
-		perro("Could not start server.");
+		perror_line("Could not start server.");
 		exit(-1);
 	}
 
