@@ -17,7 +17,7 @@ OBJECTS=$(B_DIR)/socket-helper.o $(B_DIR)/protocol_manager.o $(B_DIR)/parser.o $
 CFLAGS=-Wall -Wextra -pthread -std=gnu99
 
 
-build: clean $(ALL_OBJECTS) makefile
+build: clean $(ALL_OBJECTS)
 	gcc -o $(B_DIR)/$(SOURCE) $(ALL_OBJECTS)
 
 tests: clean $(T_DIR)/test_client.c $(T_DIR)/$(T_DIR).c $(OBJECTS)

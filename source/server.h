@@ -6,7 +6,6 @@
 
 #include "debug.h"
 #include <pthread.h>
-#include <semaphore.h>
 
 #define NTHREADS 4
 #define LISTEN_BACKLOG 10
