@@ -101,7 +101,7 @@ void* worker(void* args) {
 		get_initial_message(current_queue_connection.type, worker_number, initial_message);
 
 		int msg_error = send_message(current_queue_connection.sock, &initial_message);
-		if(!msg_error) { perror_line("Error sending message"); }
+		if(msg_error) { perror_line("Error sending message"); }
 
 		char client_message[MAX_MESSAGE_SIZE];
 
@@ -121,7 +121,7 @@ void* worker(void* args) {
 			// Send message back to the client
 
 			msg_error = send_message(current_queue_connection.sock, &client_message);
-			if(!msg_error) { perror_line("Error sending message"); }
+			if(msg_error) { perror_line("Error sending message"); }
 
 			if(is_success == R_DEATH) { // They want to die
 				close(current_queue_connection.sock);

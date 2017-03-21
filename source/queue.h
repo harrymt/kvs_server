@@ -3,6 +3,7 @@
 #define _queue_h_
 
 #include "server.h"
+#include <semaphore.h>
 
 typedef struct queue_item
 {
