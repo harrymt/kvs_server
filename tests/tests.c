@@ -65,6 +65,25 @@ void test_data_server(int dport) {
 	test_cmd("DELETE name\n", "Success.\n", "Delete key that exists.", datac);
 	test_cmd("DELETE name\n", "Error, no key found.\n", "Delete key that doesn't exists.", datac);
 
+	// Fill up the KVS
+	for(int j = 0; j < 99; j++) {
+		printf("J is %d\n", j);
+		char msg[100];
+		sprintf(msg, "PUT unique_%d TheValue", j);
+		test_cmd(msg, "Success.\n", "Test under 100 values in kvs.", datac);
+	}
+
+	// Try to add more than the maximum (100 - 1)
+	test_cmd("PUT errorKey xxx", "Error storing key.\n", "Test over 100 values in kvs.", datac);
+	test_cmd("COUNT\n", "99\n", "Count full kvs.", datac);
+
+	// Delete those keys again
+	for(int j = 0; j < 99; j++) {
+		char msg[100];
+		sprintf(msg, "DELETE unique_%d", j);
+		test_cmd(msg, "Success.\n", "Just delete these keys.", datac);
+	}
+
 	test_cmd("PUT name Harry\n", "Success.\n", "Put same after delete.", datac);
 	test_cmd("GET name\n", "Harry\n", "Get value after re-add.", datac);
 
@@ -106,9 +125,7 @@ void test_data_server(int dport) {
 }
 
 void test_control_server(int cport) {
-
-
-	// Connect to Control server with a port // TODO enable
+	// Connect to Control server with a port
 	int controlc = connect_to_server(cport);
 
 	// Run tests on control
@@ -129,7 +146,6 @@ int main(int argc, char** argv) {
 		exit(-1);
 	}
 
-
 	/* Setup control and data ports. */
 	int cport = atoi(argv[2]), dport = atoi(argv[1]);
 	printf("==== WARNING ====\nIf you have used these ports recently c: %d, d: %d, they may not be available until the OS port available timeout is finished\n==== WARNING ====\n", cport, dport);
@@ -146,6 +162,7 @@ int main(int argc, char** argv) {
 		exit(-1);
 	}
 
+	printf("Waiting for server to start, please wait...\n"); fflush(stdout);
 	sleep(8); // Wait for server to start
 
 	test_data_server(dport);
