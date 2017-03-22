@@ -26,5 +26,5 @@ void start_server(struct server_config *i, pthread_t t) {
 		exit(-1);
 	}
 
-	DEBUG_PRINT(("OK: Successfully started server listening on port:%d.\n", ((struct server_config *)i)->port));
+	DEBUG_PRINT(("OK: Successfully started %d server listening on port:%d.\n", ((struct server_config *)i)->type, ((struct server_config *)i)->port));
 }

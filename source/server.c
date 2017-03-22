@@ -67,6 +67,13 @@ int initiate_server(int cport, int dport) {
 		pthread_cond_wait(&cond_kill, &mutex_kill); // wait on a condition variable
 
 		if(server_port_that_wants_to_die == cport) {
+
+			DEBUG_PRINT(("OK: Killing all worker threads... on port: :%d.\n", cport));
+			for(int w = 0; w < NTHREADS; w++) {
+				DEBUG_PRINT(("OK: Killing worker %d.\n", w));
+				pthread_join(*worker_thread_pool[w].thread, NULL);
+		    }
+
 			DEBUG_PRINT(("OK: Killing control server port:%d.\n", cport));
 			pthread_join(control_thread, NULL);
 			number_of_servers_alive--;
@@ -140,7 +147,7 @@ void* worker(void* args) {
 
 			} else if(is_success == R_SHUTDOWN) {
 				printf("Shutting down.\n");
-				close(current_queue_connection.sock);
+//				close(current_queue_connection.sock);
 				pthread_mutex_lock(&mutex_kill);
 				server_port_that_wants_to_die = current_queue_connection.port;
 				pthread_cond_signal(&cond_kill);
