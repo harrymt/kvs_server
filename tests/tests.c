@@ -146,6 +146,8 @@ int main(int argc, char** argv) {
 		exit(-1);
 	}
 
+	sleep(8); // Wait for server to start
+
 	test_data_server(dport);
 	test_control_server(cport);
 
