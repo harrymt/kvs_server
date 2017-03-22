@@ -16,6 +16,7 @@
 #include "server.h"
 #include "socket-helper.h"
 
+pthread_mutex_t mutex_kvs = PTHREAD_MUTEX_INITIALIZER;
 
 /**
  * Parses the message based on the CONTROL protocol.
@@ -61,7 +62,9 @@ int parse_message_with_control_protocol(void *message) {
 	} else if(cmd == C_COUNT) {
 
 		// countItems() should never fail.
-		sprintf(message, "%d\n", countItems()); // TODO synchronise
+		pthread_mutex_lock(&mutex_kvs);
+		sprintf(message, "%d\n", countItems());
+		pthread_mutex_unlock(&mutex_kvs);
 
 	} else {
 		DEBUG_PRINT(("ERROR, should never happen. cmd %d", cmd));
@@ -127,8 +130,9 @@ int parse_message_with_data_protocol(void* message) {
 
 
 		// countItems should never fail
-		int itemCount = countItems(); // TODO synchronise
-
+		pthread_mutex_lock(&mutex_kvs);
+		int itemCount = countItems();
+		pthread_mutex_unlock(&mutex_kvs);
 
 		sprintf(message, "%d\n", itemCount);
 
@@ -136,8 +140,9 @@ int parse_message_with_data_protocol(void* message) {
 	} else if(cmd == D_EXISTS) {
 
 		// itemExists should never fail
-		int does_exist = itemExists(*key); // TODO synchronise
-
+		pthread_mutex_lock(&mutex_kvs);
+		int does_exist = itemExists(*key);
+		pthread_mutex_unlock(&mutex_kvs);
 
 		sprintf(message, "%d\n", does_exist);
 
@@ -145,7 +150,9 @@ int parse_message_with_data_protocol(void* message) {
 	} else if(cmd == D_GET) {
 
 		// findValue could return NULL
-		char* result = findValue(*key); // TODO synchronise
+		pthread_mutex_lock(&mutex_kvs);
+		char* result = findValue(*key);
+		pthread_mutex_unlock(&mutex_kvs);
 
 		// Check if the key exists
 		if(result == NULL) {
@@ -162,7 +169,9 @@ int parse_message_with_data_protocol(void* message) {
 		strncpy(copytext, text, strlen(text) + 1);
 
 		// If item exists, or table is full then -1
-		int is_error = createItem(*key, copytext); // TODO synchronise
+		pthread_mutex_lock(&mutex_kvs);
+		int is_error = createItem(*key, copytext);
+		pthread_mutex_unlock(&mutex_kvs);
 
 		// Check if result exists
 		if(is_error == 0) {
@@ -175,7 +184,9 @@ int parse_message_with_data_protocol(void* message) {
 	} else if(cmd == D_DELETE) {
 
 		// -1 if item doesn't exist.
-		int is_error = deleteItem(*key, false); // TODO synchronise
+		pthread_mutex_lock(&mutex_kvs);
+		int is_error = deleteItem(*key, false);
+		pthread_mutex_unlock(&mutex_kvs);
 
 		// Check if item exists
 		if(is_error == 0) {
