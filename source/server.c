@@ -11,6 +11,7 @@
 #include <string.h>
 #include <pthread.h>
 #include <semaphore.h>
+#include <poll.h>
 #include <errno.h>
 #include <unistd.h>
 #include "kv.h"
@@ -40,6 +41,7 @@ void init_pre_server_setup() {
     // Start all the workers for data threads
 	init_worker_pool();
 }
+
 /**
  * Like the main function.
  *
@@ -96,7 +98,7 @@ void* worker(void* args) {
 
 	pthread_detach(pthread_self());
 
-	printf("Worker %d created, waiting for new tasks...\n", worker_number);
+	DEBUG_PRINT(("Worker %d created, waiting for new tasks...\n", worker_number));
 	bool running = true;
 	while(running) {
 
@@ -114,6 +116,11 @@ void* worker(void* args) {
 		{
 			memset(client_message, 0, 256);
 
+			int is_error = poll_for_connections(current_queue_connection.sock);
+			if(is_error == -1) {
+				DEBUG_PRINT(("Polling error %d.\n", is_error));
+				continue;
+			}
 			int read_size = read_message(current_queue_connection.sock, &client_message);
 
 			if(read_size == 0) {
@@ -124,7 +131,6 @@ void* worker(void* args) {
 			int is_success = run_command(current_queue_connection.type, &client_message);
 
 			// Send message back to the client
-
 			msg_error = send_message(current_queue_connection.sock, &client_message);
 			if(msg_error) { perror_line("Error sending message"); }
 
@@ -148,8 +154,31 @@ void* worker(void* args) {
     return 0;
 }
 
+int poll_for_connections(int sock) {
+	struct pollfd pfd = {.fd = sock, .events = POLLIN };
+
+	int POLL_TIMEOUT = 10000;
+	int result;
+
+	while(true) {
+		DEBUG_PRINT(("Polling...%d \n", 1));
+
+		result = poll(&pfd, 1, POLL_TIMEOUT);
+
+		if ((pfd.revents & POLLNVAL) || (result == -1)) {
+			return -1;
+
+		} else if (pfd.revents & (POLLHUP | POLLERR)) {
+			continue; // Client disconnected
+
+		} else if (pfd.revents & POLLIN) {
+			return 1;
+		}
+	}
+	return -1; // client disconnected
+}
+
 int accept_connection(int sock, struct sockaddr_in *address, socklen_t size) {
-	// TODO change to poll
 	return accept(sock, (struct sockaddr *) address, &size);
 }
 
@@ -166,13 +195,17 @@ void *server_listen(void* args) {
 
 	int running = true;
 	while(running) {
-		address_size = sizeof(struct sockaddr_in);
-		printf("Waiting for connection...\n"); fflush(stdout);
-		// Wait for connection
-		int connection = accept(server_socket, (struct sockaddr *) &peer_addr, &address_size);  // accept_connection(server_socket, &peer_addr, address_size);
 
+		// Poll for new connection
+		int is_error = poll_for_connections(server_socket);
+		if(is_error == -1) {
+			DEBUG_PRINT(("Polling error %d.\n", is_error));
+			continue;
+		}
+
+		address_size = sizeof(struct sockaddr_in);
+		int connection = accept_connection(server_socket, &peer_addr, address_size);  // accept_connection(server_socket, &peer_addr, address_size);
 		if (connection == -1) {
-			perror_line("Error accepting connection");
 			DEBUG_PRINT(("Could not accept a connection, just containing, backlog:%d.\n", LISTEN_BACKLOG));
 			continue;
 		}
@@ -190,12 +223,10 @@ void init_worker_pool() {
 	worker_thread_pool = malloc(sizeof(struct worker_configuration) * NTHREADS);
 
 	for(int w = 0; w < NTHREADS; w++) {
-    	printf("Creating new thread %d\n", w);
-
 		if (pthread_create(&worker_threads[w], NULL, worker, &w) != 0) {
 			perror_line("Could not create a worker thread");
-			break;
 		}
+		DEBUG_PRINT(("Creating new thread %d\n", w));
 
 		struct worker_configuration newThread;
 		newThread.worker_number = w;

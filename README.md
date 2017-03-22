@@ -9,12 +9,12 @@ Program is black box tested, using my own [test harness](/tests).
 
 ### TODO
 
-- `poll()` instead of `accept()`
+- DONE: `poll()` instead of `accept()`
 - DONE: Create an array of worker threads at the start, and then use an array of structs
 - DONE: For testing, create a worker pool
 - DONE: Create another thread pool for the control thread - uses same
 - DONE: Check error, if I close a terminal, all terminals exit!
-- Make kvs threadsafe, DONE?
+- Make kvs threadsafe
 - Add more error checking to all functions, check feedback from last time
 
 ### Build

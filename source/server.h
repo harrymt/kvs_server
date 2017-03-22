@@ -36,5 +36,6 @@ void *server_listen(void* args);
 int initiate_server(int cport, int dport);
 void init_worker_pool();
 void init_pre_server_setup();
+int poll_for_connections(int sock);
 
 #endif
