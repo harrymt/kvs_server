@@ -135,13 +135,19 @@ int main(int argc, char** argv) {
 	my_assert_equals("0", "0", "Testing my assert equals function.");
 
 	// Start a test server
-	start_test_server(dport, DATA);
-	// Start the control server
-	start_test_server(cport, CONTROL); // TODO enable
+	struct tuple_ports *ports = malloc(sizeof(struct tuple_ports));
+	ports->dport = dport;
+	ports->cport = cport;
+	pthread_t main_thread;
+	if (pthread_create(&main_thread, NULL, initiate_servers, ports) < 0) {
+		perror_line("Could not start server.");
+		exit(-1);
+	}
 
 	test_data_server(dport);
 	test_control_server(cport);
 
+	pthread_join(main_thread, NULL);
 	printf("==== SUCCESS ====\nAll tests pass\n");
 	return 0;
 }

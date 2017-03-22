@@ -23,5 +23,16 @@ int main(int argc, char** argv) {
 	/* Setup control and data ports. */
 	int cport = atoi(argv[2]), dport = atoi(argv[1]);
 
-	initiate_server(cport, dport);
+	struct tuple_ports *ports = malloc(sizeof(struct tuple_ports));
+	ports->dport = dport;
+	ports->cport = cport;
+	pthread_t main_thread;
+	if (pthread_create(&main_thread, NULL, initiate_servers, ports) < 0) {
+		perror_line("Could not start server.");
+		exit(-1);
+	}
+
+	pthread_join(main_thread, NULL);
+
+	return 0;
 }

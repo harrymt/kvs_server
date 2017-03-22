@@ -26,6 +26,8 @@
 pthread_mutex_t mutex_kill = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cond_kill = PTHREAD_COND_INITIALIZER;
 int server_port_that_wants_to_die = 0;
+
+
 int DATA_SOCKET;
 int CONTROL_SOCKET;
 
@@ -48,13 +50,16 @@ void init_pre_server_setup() {
  * Like the main function.
  *
  */
-int initiate_server(int cport, int dport) {
+void* initiate_servers(void* args) {
+	/* Extract the server config arguments */
+	struct tuple_ports *ports = (struct tuple_ports*) args;
+
 	pthread_t data_thread = pthread_self(), control_thread = pthread_self();
 	struct server_config *data_info = malloc(sizeof(struct server_config));
 	struct server_config *control_info = malloc(sizeof(struct server_config));
-	data_info->port = dport;
+	data_info->port = ports->dport;
 	data_info->type = DATA;
-	control_info->port = cport;
+	control_info->port = ports->cport;
 	control_info->type = CONTROL;
 
 	init_pre_server_setup();
@@ -68,19 +73,19 @@ int initiate_server(int cport, int dport) {
 	while(server_port_that_wants_to_die == 0) {
 		pthread_cond_wait(&cond_kill, &mutex_kill); // wait on a condition variable
 
-		if(server_port_that_wants_to_die == cport) {
+		if(server_port_that_wants_to_die == ports->cport) {
 
-			DEBUG_PRINT(("OK: Killing all worker threads... on port: :%d.\n", cport));
+			DEBUG_PRINT(("OK: Killing all worker threads... on port: :%d.\n", ports->cport));
 			for(int w = 0; w < NTHREADS; w++) {
 				DEBUG_PRINT(("OK: Killing worker %d.\n", w));
 				pthread_join(*worker_thread_pool[w].thread, NULL);
 		    }
 
-			DEBUG_PRINT(("OK: Killing control server port:%d.\n", cport));
+			DEBUG_PRINT(("OK: Killing control server port:%d.\n", ports->cport));
 			pthread_join(control_thread, NULL);
 			number_of_servers_alive--;
 
-			DEBUG_PRINT(("OK: Killing data server port:%d.\n", dport));
+			DEBUG_PRINT(("OK: Killing data server port:%d.\n", ports->dport));
 			pthread_join(data_thread, NULL);
 			number_of_servers_alive--;
 
