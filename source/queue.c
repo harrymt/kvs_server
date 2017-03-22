@@ -1,23 +1,22 @@
 #include "queue.h"
 
-
-void *safe_malloc(int size)
-{
-  void *p = malloc (size);
-  if (p == NULL) perror_line ("malloc failed");
-  return p;
-}
-
-sem_t *make_semaphore(int value)
-{
-	sem_t *sem = safe_malloc(sizeof(sem_t));
+/**
+ * Helper function to init a semaphore.
+ */
+sem_t *make_semaphore(int value) {
+	sem_t *sem = malloc(sizeof(sem_t));
+	if(sem == NULL) perror_line("Sem malloc failed");
 	if (sem_init(sem, 0, value) != 0) perror_line("sem_init failed");
 	return sem;
 }
 
+/**
+ * Setup and make a queue.
+ */
 Queue *make_queue(int length)
 {
-  Queue *queue = (Queue *) safe_malloc(sizeof(Queue));
+  Queue *queue = (Queue *) malloc(sizeof(Queue));
+  if(queue == NULL) perror_line("Queue malloc failed");
   queue->length = length;
   queue->items = malloc(length * sizeof(queue_item));
   queue->next_in = 0;
@@ -29,6 +28,9 @@ Queue *make_queue(int length)
 }
 
 
+/**
+ * Pop an item off a queue.
+ */
 queue_item queue_pop(Queue *queue) {
 	sem_wait(queue->elements);
 	sem_wait(queue->mutex);
@@ -42,6 +44,9 @@ queue_item queue_pop(Queue *queue) {
 	return item;
 }
 
+/**
+ * Push an item onto the quque.
+ */
 void queue_push(Queue *queue, queue_item item) {
 	sem_wait(queue->spaces);
 	sem_wait(queue->mutex);

@@ -23,8 +23,6 @@ typedef struct {
   sem_t *spaces;
 } Queue;
 
-void *safe_malloc(int size);
-
 sem_t *make_semaphore(int value);
 
 Queue *make_queue(int length);
