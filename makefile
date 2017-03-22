@@ -14,14 +14,15 @@ OBJECTS=$(B_DIR)/socket-helper.o $(B_DIR)/protocol_manager.o $(B_DIR)/parser.o $
 
 # C compiler optimisations and warnings
 # -pthread Library needed for pthread commands
-CFLAGS=-Wall -Wextra -pthread -std=gnu99
+CFLAGS=-Wall -Wextra -std=gnu99
+CLIBRARIES=-pthread
 
 
 build: clean $(ALL_OBJECTS)
-	gcc -o $(B_DIR)/$(SOURCE) $(ALL_OBJECTS)
+	gcc -o $(B_DIR)/$(SOURCE) $(ALL_OBJECTS) $(CLIBRARIES)
 
 tests: clean $(T_DIR)/test_client.c $(T_DIR)/$(T_DIR).c $(OBJECTS)
-	gcc -I . $(CFLAGS) -o $(B_DIR)/$(T_DIR) $(T_DIR)/test_client.c $(T_DIR)/$(T_DIR).c $(OBJECTS)
+	gcc -I . $(CFLAGS) -o $(B_DIR)/$(T_DIR) $(T_DIR)/test_client.c $(T_DIR)/$(T_DIR).c $(OBJECTS) $(CLIBRARIES)
 
 run:
 	./$(B_DIR)/$(SOURCE) $(PARAMETERS)

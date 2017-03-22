@@ -87,7 +87,6 @@ int connect_to_server(int port) {
 	memset(client_message, 0, LINE);
 	int read_size = read_message(my_test_sock, &client_message);
 	client_message[read_size] = '\0';
-	printf("Recevied MOTD.\n"); fflush(stdout);
 	return my_test_sock;
 }
 
