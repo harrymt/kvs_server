@@ -1,32 +1,21 @@
 /* Server program for key-value store. */
-
 #include "server.h"
 
 #include <sys/socket.h>
 #include <stdbool.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <netinet/in.h>
-#include <sys/types.h>
-#include <string.h>
-#include <pthread.h>
-#include <semaphore.h>
 #include <poll.h>
-#include <errno.h>
 #include <unistd.h>
-#include "kv.h"
-#include "parser.h"
-#include "debug.h"
+
+#include "server_helpers.h"
 #include "protocol_manager.h"
 #include "socket-helper.h"
-#include "server_helpers.h"
 #include "message_manager.h"
 #include "queue.h"
 
 pthread_mutex_t mutex_kill = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cond_kill = PTHREAD_COND_INITIALIZER;
 int server_port_that_wants_to_die = 0;
-
 
 int DATA_SOCKET;
 int CONTROL_SOCKET;
@@ -38,13 +27,6 @@ Queue *worker_queue;
 
 pthread_t worker_threads[NTHREADS];
 struct worker_configuration *worker_thread_pool;
-
-void init_pre_server_setup() {
-    // Setup a queue for workers to consume
-    worker_queue = make_queue(MAX_QUEUE_SIZE);
-    // Start all the workers for data threads
-	init_worker_pool();
-}
 
 /**
  * Like the main function.
@@ -62,7 +44,7 @@ void* initiate_servers(void* args) {
 	control_info->port = ports->cport;
 	control_info->type = CONTROL;
 
-	init_pre_server_setup();
+	init_worker_pool();
 
 	int number_of_servers_alive = 2;
 	start_server(data_info, data_thread);
@@ -92,7 +74,7 @@ void* initiate_servers(void* args) {
 			server_port_that_wants_to_die = 0;
 		} else {
 			DEBUG_PRINT(("BAD: Oh dear, trying to kill server that we don't have %d, ignore it.\n", server_port_that_wants_to_die));
-			exit(1); // TODO remove me
+			perror_line("Trying to kill server on port that we don't have.");
 		}
 		pthread_mutex_unlock(&mutex_kill);
 
@@ -111,9 +93,11 @@ void* initiate_servers(void* args) {
 	return 0;
 }
 
+/**
+ * Producer, takes new connections from the Queue and handles that connection.
+ */
 void* worker(void* args) {
-	/* Extract the thread arguments */
-	int worker_number = *(int*)args;
+	int worker_number = *(int*)args; // Extract thread arguments
 
 	pthread_detach(pthread_self());
 
@@ -124,7 +108,7 @@ void* worker(void* args) {
 		queue_item current_queue_connection = queue_pop(worker_queue);
 
 		char initial_message[512];
-		get_initial_message(current_queue_connection.type, worker_number, initial_message);
+		build_initial_message(current_queue_connection.type, worker_number, initial_message);
 
 		int msg_error = send_message(current_queue_connection.sock, &initial_message);
 		if(msg_error) { perror_line("Error sending message"); }
@@ -143,7 +127,7 @@ void* worker(void* args) {
 			int read_size = read_message(current_queue_connection.sock, &client_message);
 
 			if(read_size == 0) {
-				DEBUG_PRINT(("Client disconnected, read_size: %d.", read_size));
+				DEBUG_PRINT(("%d client disconnected.\n", 1));
 				break;
 			}
 
@@ -158,8 +142,6 @@ void* worker(void* args) {
 				break;
 
 			} else if(is_success == R_SHUTDOWN) {
-				printf("Shutting down.\n");
-//				close(current_queue_connection.sock);
 				pthread_mutex_lock(&mutex_kill);
 				server_port_that_wants_to_die = current_queue_connection.port;
 				pthread_cond_signal(&cond_kill);
@@ -171,34 +153,6 @@ void* worker(void* args) {
 	}
 
     return 0;
-}
-
-int poll_for_connections(int sock) {
-	struct pollfd pfd = {.fd = sock, .events = POLLIN };
-
-	int POLL_TIMEOUT = 10000;
-	int result;
-
-	while(true) {
-		DEBUG_PRINT(("Polling...%d \n", 1));
-
-		result = poll(&pfd, 1, POLL_TIMEOUT);
-
-		if ((pfd.revents & POLLNVAL) || (result == -1)) {
-			return -1;
-
-		} else if (pfd.revents & (POLLHUP | POLLERR)) {
-			continue; // Client disconnected
-
-		} else if (pfd.revents & POLLIN) {
-			return 1;
-		}
-	}
-	return -1; // client disconnected
-}
-
-int accept_connection(int sock, struct sockaddr_in *address, socklen_t size) {
-	return accept(sock, (struct sockaddr *) address, &size);
 }
 
 void *server_listen(void* args) {
@@ -241,8 +195,10 @@ void *server_listen(void* args) {
 	return 0;
 }
 
-
 void init_worker_pool() {
+    // Setup a queue for workers to consume
+	worker_queue = make_queue(MAX_QUEUE_SIZE);
+
     // Setup a number of workers
 	worker_thread_pool = malloc(sizeof(struct worker_configuration) * NTHREADS);
 
@@ -258,4 +214,3 @@ void init_worker_pool() {
     	worker_thread_pool[w] = newThread;
     }
 }
-

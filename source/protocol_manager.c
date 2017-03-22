@@ -1,21 +1,11 @@
 #include "protocol_manager.h"
 
 #include <stdbool.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <pthread.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <string.h>
-#include <errno.h>
-#include <unistd.h>
-#include <netinet/in.h>
 #include "kv.h"
 #include "parser.h"
-#include "debug.h"
 #include "server.h"
-#include "socket-helper.h"
 
+// Lock to make the KVS threadsafe.
 pthread_mutex_t mutex_kvs = PTHREAD_MUTEX_INITIALIZER;
 
 /**
@@ -44,7 +34,8 @@ int parse_message_with_control_protocol(void *message) {
 		// If a user types a wrong command, show error,
 		// otherwise if they hit return then close their connection
 		 if(strlen(message) == 0) {
-			 return R_DEATH;
+			 sprintf(message, "Goodbye.\n");
+			 return R_DEATH;  // They want to exit
 
 		 } else {
 			 // Just show a command not found error
@@ -110,7 +101,7 @@ int parse_message_with_control_protocol(void *message) {
  *	(empty line)
  *		- Close connection.
  *	    - Returns:
- *			- "goodbye."
+ *			- "Goodbye."
  *
  */
 int parse_message_with_data_protocol(void* message) {
@@ -127,7 +118,6 @@ int parse_message_with_data_protocol(void* message) {
 
 	// If user issued COUNT command
 	if(cmd == D_COUNT) {
-
 
 		// countItems should never fail
 		pthread_mutex_lock(&mutex_kvs);
@@ -197,22 +187,21 @@ int parse_message_with_data_protocol(void* message) {
 
 	// If user just hit return
 	} else if(cmd == D_END)	{
+		sprintf(message, "Goodbye.\n");
 		return R_DEATH; // They want to exit
 
-	/** ERRORS **/
-
-
+	// Error messages
 	} else if(cmd == D_ERR_OL) {
-		sprintf(message, "Found cmd D_ERR_OL, Possibly need a C null terminator backslash zero at end!\n");
+		sprintf(message, "Error, can't find EOL, line too long.\n");
 
 	} else if(cmd == D_ERR_INVALID) {
-		sprintf(message, "Found cmd D_ERR_INVALID.\n");
+		sprintf(message, "Error, command not found.\n");
 
 	} else if(cmd == D_ERR_SHORT) {
-		sprintf(message, "Found cmd D_ERR_SHORT.\n");
+		sprintf(message, "Error, command too short.\n");
 
 	} else if(cmd == D_ERR_LONG) {
-		sprintf(message, "Found cmd D_ERR_LONG.\n");
+		sprintf(message, "Error, command too long.\n");
 
 	} else {
 		sprintf(message, "Command not found.\n");
@@ -234,11 +223,7 @@ enum RETURN_TYPE run_command(int type, void* message) {
 
 	} else if (type == CONTROL) {
     	return parse_message_with_control_protocol(message);
-
-	} else {
-		DEBUG_PRINT(("Not a recognised type! %d\n", type));
-		perror_line("Invalid command found.");
 	}
 
-	return R_SUCCESS;
+	return R_ERROR;
 }

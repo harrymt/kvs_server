@@ -1,29 +1,17 @@
 #include "test_client.h"
 
-#include <stddef.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <pthread.h>
 #include <sys/socket.h>
-#include <sys/types.h>
-#include <string.h>
-#include <errno.h>
 #include <unistd.h>
-#include <netinet/in.h>
 #include <arpa/inet.h>
-#include "../source/kv.h"
 #include "../source/parser.h"
-#include "../source/debug.h"
-#include "../source/server.h"
-#include "../source/socket-helper.h"
 #include "../source/message_manager.h"
 
 pthread_t control_thread;
 pthread_t data_thread;
 
+/**
+ * A simple assert function, test to see if 2 strings are equal.
+ */
 void my_assert_equals(char* a, char* b, char* test_name) {
 	int test_success = strcmp(a, b);
 	if(test_success) {
@@ -31,49 +19,43 @@ void my_assert_equals(char* a, char* b, char* test_name) {
 		sprintf(o, "ASSERTION FAILED: %s: ('%s' != '%s')", test_name, a, b);
 		perror_line(o);
 	} else {
-		printf("> Passed: '%s'\n", test_name);
+		DEBUG_PRINT(("> Passed: '%s'\n", test_name));
 	}
 	fflush(stdout);
 }
 
-
-void start_test_server(int port, enum SERVER_TYPE type) {
-	struct server_config *config = malloc(sizeof(struct server_config));
-	config->port = port;
-	config->type = type;
-
-	init_pre_server_setup();
-
-	if(type == CONTROL) {
-		start_server(config, control_thread);
-	} else if (type == DATA) {
-		start_server(config, data_thread);
-	}
+/**
+ * Send a command (input) to the connection.
+ */
+void send_cmd(char* input, int connection) {
+	if(write(connection, input, strlen(input) + 1) < 0) perror_line("Write error.");
 }
 
+/**
+ * Test a command with a result from a connection.
+ */
+void test_cmd(char* cmd, char* res, char* test_name, int connection) {
+	char output[LINE] = {0};
+	send_cmd(cmd, connection);
+	read_message(connection, output);
+	my_assert_equals(output, res, test_name);
+}
+
+/**
+ * Close the connection to the server.
+ */
 void leave_server(int connection) {
 	close(connection);
 }
 
-//void stop_server(enum SERVER_TYPE type) {
-//	if(type == CONTROL) {
-//		pthread_join(control_thread, NULL);
-//	} else if(type == DATA) {
-//		pthread_join(data_thread, NULL);
-//	}
-//}
-
-
-void send_cmd(char* input, int connection) {
-	if(write(connection, input, strlen(input) + 1) < 0) perror_line("send"); // TODO change to write
-}
-
-
+/**
+ * Connect to a server on a port.
+ */
 int connect_to_server(int port) {
-	int my_test_sock = socket(AF_INET, SOCK_STREAM, 0); if(my_test_sock == -1) perror_line("Error opening socket");
+	int my_test_sock = socket(AF_INET, SOCK_STREAM, 0); if(my_test_sock == -1) perror_line("Error opening socket.");
 
 	struct in_addr server_addr;
-	if(!inet_pton(AF_INET, "127.0.0.1", &server_addr)) perror_line("inet_aton");
+	if(!inet_pton(AF_INET, "127.0.0.1", &server_addr)) perror_line("Inet error.");
 
 	struct sockaddr_in connection;
 	memcpy(&connection.sin_addr, &server_addr, sizeof(server_addr));
@@ -90,11 +72,3 @@ int connect_to_server(int port) {
 	return my_test_sock;
 }
 
-
-void test_cmd(char* cmd, char* res, char* test_name, int connection) {
-	char output[LINE] = {0};
-	send_cmd(cmd, connection);
-	read_message(connection, output);
-	my_assert_equals(output, res, test_name);
-//	sleep(1); // Sleep between test responses
-}

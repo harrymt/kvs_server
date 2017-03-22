@@ -1,18 +1,9 @@
 #include "socket-helper.h"
 
-#include <stdbool.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <sys/socket.h>
-#include <sys/types.h>
-#include <string.h>
-#include <errno.h>
 #include <unistd.h>
 #include <netinet/in.h>
-#include "kv.h"
-#include "parser.h"
-#include "debug.h"
-#include "protocol_manager.h"
+
 #include "server.h"
 
 
@@ -42,10 +33,9 @@ int bind_socket(int fd, int port) {
  * Returns: file descriptor, otherwise -1 on error.
  */
 int build_socket() {
-  int domain = AF_INET; /* IPv4 TCP */
+  int domain = AF_INET; // TCP
   int type = SOCK_STREAM; // TCP/IP
-  int protocol = 0; /* Any protocol */
-  // DEBUG_PRINT(("Attempting to build %d socket.\n", type));
+  int protocol = 0; // Anything
   return socket(domain, type, protocol);
 }
 
@@ -56,23 +46,15 @@ int build_socket() {
  */
 int setup_socket(int port) {
 
-  /* Build */
+  // Create socket
   int file_descriptor = build_socket();
-  if(file_descriptor == -1) {
-	  perror_line("Error creating socket");
-  }
+  if(file_descriptor == -1) { perror_line("Error creating socket"); }
 
-  /* Bind */
-  if(bind_socket(file_descriptor, port) == -1) {
-	  perror_line("Error binding socket");
-  }
-  //DEBUG_PRINT(("Successfully binded socket, fd:%d.\n", file_descriptor));
+  // Bind
+  if(bind_socket(file_descriptor, port) == -1) { perror_line("Error binding socket"); }
 
-  /* Listen */
-  if(listen(file_descriptor, LISTEN_BACKLOG) == -1) {
-	  perror_line("Error listening");
-  }
-  //DEBUG_PRINT(("Listening successfully, backlog:%d.\n", LISTEN_BACKLOG));
+  // Listen
+  if(listen(file_descriptor, LISTEN_BACKLOG) == -1) { perror_line("Error listening"); }
 
   return file_descriptor;
 }

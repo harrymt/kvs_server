@@ -15,7 +15,7 @@
    * Note: The extra parentheses are necessary, because some older C compilers don't support var-args in macros.
    */
   /* 1: enables extra print statements, 0: disable */
-  #define DEBUG 1
+//  #define DEBUG 1
   #ifdef DEBUG
   # define DEBUG_PRINT(x) printf x
   #else
@@ -23,6 +23,9 @@
   #endif
 
 
+/**
+ * Macro to print out the line number of the file that created the error number, then exit.
+ */
 #define perror_line(x) { fprintf(stderr, "%s:%d: %s: %s\n", __FILE__, __LINE__, x, strerror(errno)); fflush(stdout); exit(1); }
 
 #endif

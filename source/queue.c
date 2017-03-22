@@ -1,26 +1,5 @@
 #include "queue.h"
 
-#include <sys/socket.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <netinet/in.h>
-#include <sys/types.h>
-#include <string.h>
-#include <pthread.h>
-#include <semaphore.h>
-#include <errno.h>
-#include <unistd.h>
-#include "kv.h"
-#include "parser.h"
-#include "server.h"
-#include "debug.h"
-#include "protocol_manager.h"
-#include "socket-helper.h"
-#include "server_helpers.h"
-#include "message_manager.h"
-
-
 
 void *safe_malloc(int size)
 {

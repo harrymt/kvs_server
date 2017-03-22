@@ -1,6 +1,4 @@
 
-
-
 #ifndef _server_h_
 #define _server_h_
 
@@ -27,7 +25,6 @@ struct server_config
     enum SERVER_TYPE type;
 };
 
-
 struct worker_configuration
 {
     int worker_number;
@@ -35,7 +32,6 @@ struct worker_configuration
 };
 
 void* worker(void* args);
-void start_server(struct server_config *i, pthread_t t);
 void *server_listen(void* args);
 void *initiate_servers(void* args);
 void init_worker_pool();

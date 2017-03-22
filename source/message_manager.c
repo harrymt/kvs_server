@@ -1,37 +1,35 @@
-#include <stdbool.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <netinet/in.h>
-#include <string.h>
-#include <pthread.h>
-#include <errno.h>
-#include <unistd.h>
-#include "debug.h"
-#include "parser.h"
-#include "server.h"
 #include "message_manager.h"
 
+#include <unistd.h>
+#include "parser.h"
+#include "server.h"
 
-void get_initial_message(int type, int worker, void* message) {
+
+/**
+ * Builds the first message to send to the client.
+ * This is based on if its a CONTROL server or DATA server.
+ */
+void build_initial_message(int type, int worker, void* message) {
 	char* data_message = "Welcome to the KV store.\n";
 	char* control_message = "Welcome to the server.\n";
 	if(type == CONTROL) {
-		if(DEBUG) {
+	#ifdef DEBUG
 			sprintf(message, "%s (worker %d).\n", control_message, worker);
-		} else {
+	#else
 			sprintf(message, "%s", control_message);
-		}
+	#endif
+
 	} else if(type == DATA) {
-		if(DEBUG) {
-			sprintf(message, "%s(worker %d).\n", data_message, worker);
-		} else {
+	#ifdef DEBUG
+			sprintf(message, "%s (worker %d).\n", data_message, worker);
+	#else
 			sprintf(message, "%s", data_message);
-		}
+	#endif
 	}
 }
 
 /**
- * Reads a line from the socket, placing the result into the message variable.
+ * Reads a line from the client (socket), placing the result into the message variable.
  */
 int read_message(int socket, void* message) {
 	int is_error = read(socket, message, LINE);
@@ -44,23 +42,18 @@ int read_message(int socket, void* message) {
 }
 
 /**
- * Send message to the connected client.
- * TODO add params
+ * Sends message to the connected client (socket).
  */
 int send_message(int socket, void* message) {
     int is_error = write(socket, message, strlen(message));
 
-    if (is_error == -1 && (errno == ECONNRESET || errno == EPIPE))
-    {
-    	// TODO there is an error here... when 1 client disconnects, others cant reconnect
-    	fprintf(stderr, "Socket %d disconnected.\n", socket);
+    if (is_error == -1 && (errno == ECONNRESET || errno == EPIPE)) {
+    	DEBUG_PRINT(("Socket %d disconnected.\n", socket));
         return -1;
-    }
-    else if (is_error == -1)
-    {
+
+    } else if (is_error == -1) {
     	perror_line("Unexpected error in send_message()!");
-        return -1;
     }
 
-    return 0;
+    return 0; // Success
 }

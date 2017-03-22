@@ -2,9 +2,10 @@
 #ifndef _server_utils_h_
 #define _server_utils_h_
 
-
-int bind_socket(int fd, int port);
-int build_socket();
+/**
+ * Creates a socket, binds it to the port then returns
+ * the file descriptor.
+ */
 int setup_socket(int port);
 
 #endif

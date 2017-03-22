@@ -7,16 +7,6 @@ Requires Make and gcc are installed on your system.
 Program is black box tested, using my own [test harness](/tests).
 
 
-### TODO
-
-- DONE: `poll()` instead of `accept()`
-- DONE: Create an array of worker threads at the start, and then use an array of structs
-- DONE: For testing, create a worker pool
-- DONE: Create another thread pool for the control thread - uses same
-- DONE: Check error, if I close a terminal, all terminals exit!
-- DONE: Make kvs threadsafe
-- Add more error checking to all functions, check feedback from last time
-
 ### Build
 
 `make`
@@ -24,14 +14,20 @@ Program is black box tested, using my own [test harness](/tests).
 ### Run
 
 `./build/server <control port number> <data port number>`
- - or `make run`
 
+Then manually access the server using `telnet`.
+
+`telnet <host> <data port number>` or `telnet <host> <control port number>`
 
 ### Tests
 
-- Build: `make tests`
-- Test: `./tests/tests <control port number> <data port number>`
-- Or manually access the server using `telnet`, e.g. `telnet <host> <control port number>/<data port number>`
+Build
+
+`make tests`
+
+Run
+
+`./tests/tests <control port number> <data port number>`
 
 
 ### Usage
@@ -138,7 +134,16 @@ There are two ports that are available to connect. The Control Port and the Data
 
 ### Error handling
 
-An invalid command, overlong line or broken connection from a client must not crash your server. Proper error handling on the socket and connection is therefore essential and you cannot `abort()` or exit the program if something goes wrong that is the client’s fault.
+An invalid command, overlong line or broken connection from a client must not crash your server. Proper error handling on the socket and connection is therefore essential and you cannot `abort()` or exit the program if something goes wrong that is the clients fault.
 
 You must also remember to free resources properly when a client connection closes.
 
+
+## Debug
+
+Debug mode can be enabled, by uncommeting the `DEBUG` definition on line `14` in `debug.h`.
+
+(*debug.h*)[source/debug.h]
+`Line 14: `` // #define DEBUG 1`
+
+This allows lots more messages to be printed to the server.
