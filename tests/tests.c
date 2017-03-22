@@ -142,9 +142,6 @@ int main(int argc, char** argv) {
 	test_data_server(dport);
 	test_control_server(cport);
 
-	stop_server(DATA);
-	stop_server(CONTROL); // TODO enable
-
 	printf("==== SUCCESS ====\nAll tests pass\n");
 	return 0;
 }

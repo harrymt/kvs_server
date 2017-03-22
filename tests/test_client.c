@@ -55,13 +55,13 @@ void leave_server(int connection) {
 	close(connection);
 }
 
-void stop_server(enum SERVER_TYPE type) {
-	if(type == CONTROL) {
-		pthread_join(control_thread, NULL);
-	} else if(type == DATA) {
-		pthread_join(data_thread, NULL);
-	}
-}
+//void stop_server(enum SERVER_TYPE type) {
+//	if(type == CONTROL) {
+//		pthread_join(control_thread, NULL);
+//	} else if(type == DATA) {
+//		pthread_join(data_thread, NULL);
+//	}
+//}
 
 
 void send_cmd(char* input, int connection) {

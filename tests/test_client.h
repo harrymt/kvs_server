@@ -13,7 +13,7 @@
 
 void leave_server(int connection);
 int connect_to_server(int port);
-void stop_server(enum SERVER_TYPE type);
+//void stop_server(enum SERVER_TYPE type);
 
 void my_assert_equals(char* a, char* b, char* test_name);
 void test_cmd(char* cmd, char* res, char* test_name, int connection);
