@@ -20,17 +20,13 @@ int server_port_that_wants_to_die = 0;
 int DATA_SOCKET;
 int CONTROL_SOCKET;
 
-bool is_shutdown = false;
-
 // The queue for producer and consumers
 Queue *worker_queue;
-
 pthread_t worker_threads[NTHREADS];
 struct worker_configuration *worker_thread_pool;
 
 /**
- * Like the main function.
- *
+ * Like the main function, creates 2 threads to listen to the ports give.
  */
 void* initiate_servers(void* args) {
 	/* Extract the server config arguments */
@@ -94,7 +90,7 @@ void* initiate_servers(void* args) {
 }
 
 /**
- * Producer, takes new connections from the Queue and handles that connection.
+ * Consumer, takes new connections from the Queue and handles that connection.
  */
 void* worker(void* args) {
 	int worker_number = *(int*)args; // Extract thread arguments
@@ -155,6 +151,9 @@ void* worker(void* args) {
     return 0;
 }
 
+/**
+ * Producer, listens for new connections then adds them to a worker queue.
+ */
 void *server_listen(void* args) {
 
 	/* Extract the server config arguments */
@@ -195,6 +194,9 @@ void *server_listen(void* args) {
 	return 0;
 }
 
+/**
+ * Creates the Queue for the producer/consumers, and creates the worker threads.
+ */
 void init_worker_pool() {
     // Setup a queue for workers to consume
 	worker_queue = make_queue(MAX_QUEUE_SIZE);
