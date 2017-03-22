@@ -25,18 +25,18 @@ int main(int argc, char** argv) {
 	struct tuple_ports *ports = malloc(sizeof(struct tuple_ports));
 	ports->dport = dport;
 	ports->cport = cport;
-	pthread_t main_thread;
+	pthread_t main_thread = pthread_self();
 	if (pthread_create(&main_thread, NULL, initiate_servers, ports) < 0) {
 		perror_line("Could not start server.");
 		exit(-1);
 	}
-
 	printf("Waiting for server to start, please wait...\n"); fflush(stdout);
-	sleep(8); // Wait for server to start
+	sleep(1); // Wait for server to start
 
 	test_data_protocol(dport);
 	test_control_protocol(cport);
 
+	fflush(stdout);
 	pthread_join(main_thread, NULL);
 	printf("==== SUCCESS ====\nAll tests pass\n");
 	return 0;
@@ -77,7 +77,6 @@ void test_data_protocol(int dport) {
 	// Connect to Data server with a port
 	int datac = connect_to_server(dport);
 
-	printf("Connected to data server %d.\n", datac); fflush(stdout);
 
 	// Run tests on data
 	test_cmd("COUNT\n", "0\n", "Count test.", datac);

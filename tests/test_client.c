@@ -63,7 +63,11 @@ int connect_to_server(int port) {
 	connection.sin_port = htons(port);
 
 	int sock = connect(my_test_sock, (const struct sockaddr*) &connection, sizeof(connection));
-	if (sock != 0) perror_line("Have you started the server?");
+	while(sock == ECONNREFUSED) {
+		if(sock == -1) perror_line("Have you started the server?");
+		sleep(1); // keep trying to re-connect
+	}
+
 
 	char client_message[LINE];
 	memset(client_message, 0, LINE);
