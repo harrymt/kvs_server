@@ -26,6 +26,8 @@
 pthread_mutex_t mutex_kill = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cond_kill = PTHREAD_COND_INITIALIZER;
 int server_port_that_wants_to_die = 0;
+int DATA_SOCKET;
+int CONTROL_SOCKET;
 
 bool is_shutdown = false;
 
@@ -91,7 +93,12 @@ int initiate_server(int cport, int dport) {
 
 		if(number_of_servers_alive == 0) {
 			printf("Shutting down.\n");
-			DEBUG_PRINT(("OK: All servers are dead, stopping main thread num:%d.\n", number_of_servers_alive));
+
+			// Close sockets of both ports
+			close(DATA_SOCKET);
+			close(CONTROL_SOCKET);
+
+			DEBUG_PRINT(("OK: All servers are dead (%d), stopping main thread.\n", number_of_servers_alive));
 			break;
 		}
 	}
@@ -196,13 +203,17 @@ void *server_listen(void* args) {
 
 	/* Create & Bind a socket, then Listen on the port. */
 	int server_socket = setup_socket(settings->port);
+	if(settings->type == DATA) {
+		DATA_SOCKET = server_socket;
+	} else if(settings->type == CONTROL) {
+		CONTROL_SOCKET = server_socket;
+	}
 
 	struct sockaddr_in peer_addr;
     socklen_t address_size;
 
 	int running = true;
 	while(running) {
-
 		// Poll for new connection
 		int is_error = poll_for_connections(server_socket);
 		if(is_error == -1) {
@@ -210,6 +221,7 @@ void *server_listen(void* args) {
 			continue;
 		}
 
+		// Connect to the client
 		address_size = sizeof(struct sockaddr_in);
 		int connection = accept_connection(server_socket, &peer_addr, address_size);  // accept_connection(server_socket, &peer_addr, address_size);
 		if (connection == -1) {
@@ -217,7 +229,7 @@ void *server_listen(void* args) {
 			continue;
 		}
 
-		// Create queue item & add it to the consumer queue
+		// Create queue item & add client to the consumer queue
 		queue_item i = {.sock = connection, .port = settings->port, .type = settings->type };
 		queue_push(worker_queue, i);
 	}
