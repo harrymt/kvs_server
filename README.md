@@ -35,7 +35,7 @@ Run
 We start the server in one terminal...
 
 ```
-$ ./server 8000 5000
+$ ./build/server 8000 5000
 Server started.
 (blocks until we get a connection)
 ```
