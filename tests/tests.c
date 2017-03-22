@@ -129,8 +129,10 @@ int main(int argc, char** argv) {
 		exit(-1);
 	}
 
+
 	/* Setup control and data ports. */
 	int cport = atoi(argv[2]), dport = atoi(argv[1]);
+	printf("==== WARNING ====\nIf you have used these ports recently c: %d, d: %d, they may not be available until the OS port available timeout is finished\n==== WARNING ====\n", cport, dport);
 
 	my_assert_equals("0", "0", "Testing my assert equals function.");
 
