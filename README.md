@@ -1,6 +1,6 @@
 ## A Key-value-store server
 
-A C implementation of a Key-Value-Store server, full outline available [here](overview.pdf).
+A C implementation of a Key-Value-Store server, full breif available [here](overview.pdf) and overview [here](report.pdf).
 
 Requires Make and gcc are installed on your system.
 
@@ -143,7 +143,15 @@ You must also remember to free resources properly when a client connection close
 
 Debug mode can be enabled, by uncommeting the `DEBUG` definition on line `14` in `debug.h`.
 
-(*debug.h*)[source/debug.h]
-`Line 14: `` // #define DEBUG 1`
+[*debug.h*](source/debug.h)
 
+DEBUG disabled
+```c
+14:     // #define DEBUG 1
+```
+
+DEBUG enabled
+```c
+14:     #define DEBUG 1
+```
 This allows lots more messages to be printed to the server.
