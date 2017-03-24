@@ -4,27 +4,19 @@
 #include "parser.h"
 #include "server.h"
 
-
 /**
  * Builds the first message to send to the client.
  * This is based on if its a CONTROL server or DATA server.
  */
-void build_initial_message(int type, int worker, void* message) {
-	char* data_message = "Welcome to the KV store.\n";
-	char* control_message = "Welcome to the server.\n";
+void build_initial_message(int type, void* message) {
+	int result = 0;
 	if(type == CONTROL) {
-	#ifdef DEBUG
-			sprintf(message, "%s (worker %d).\n", control_message, worker);
-	#else
-			sprintf(message, "%s", control_message);
-	#endif
-
+		result = sprintf(message, "%s", "Welcome to the server.\n");
 	} else if(type == DATA) {
-	#ifdef DEBUG
-			sprintf(message, "%s (worker %d).\n", data_message, worker);
-	#else
-			sprintf(message, "%s", data_message);
-	#endif
+		result = sprintf(message, "%s", "Welcome to the KV store.\n");
+	}
+	if(result < 0) {
+		perror_exit("sprintf failed.")
 	}
 }
 
@@ -35,7 +27,7 @@ int read_message(int socket, void* message) {
 	int is_error = read(socket, message, LINE);
 
 	if(is_error < 0) {
-		perror_line("Read message failed!");
+		perror_exit("Read message failed!");
 	}
 
 	return is_error;
@@ -52,7 +44,7 @@ int send_message(int socket, void* message) {
         return -1;
 
     } else if (is_error == -1) {
-    	perror_line("Unexpected error in send_message()!");
+    	perror_exit("Unexpected error in send_message()!");
     }
 
     return 0; // Success

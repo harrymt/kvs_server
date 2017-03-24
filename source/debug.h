@@ -8,24 +8,25 @@
 #include <stdlib.h>
 
   /*
-   * Debug printf statements.
-   * Taken from here: http://stackoverflow.com/a/1941337
-   * Called like
+   * Debug print statements, taken from here: http://stackoverflow.com/a/1941337
+   *
+   * Example:
+   *
    *  DEBUG_PRINT(("Hi %d", 1));
+   *
    * Note: The extra parentheses are necessary, because some older C compilers don't support var-args in macros.
    */
-  /* 1: enables extra print statements, 0: disable */
-//  #define DEBUG 1
+//   #define DEBUG
   #ifdef DEBUG
   # define DEBUG_PRINT(x) printf x
   #else
-  # define DEBUG_PRINT(x) do {} while (0)
+  # define DEBUG_PRINT(x)
   #endif
 
 
 /**
  * Macro to print out the line number of the file that created the error number, then exit.
  */
-#define perror_line(x) { fprintf(stderr, "%s:%d: %s: %s\n", __FILE__, __LINE__, x, strerror(errno)); fflush(stdout); exit(1); }
+#define perror_exit(x) { fprintf(stderr, "%s:%d: %s: %s\n", __FILE__, __LINE__, x, strerror(errno)); fflush(stdout); exit(1); }
 
 #endif

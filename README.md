@@ -6,8 +6,6 @@ Requires Make and gcc are installed on your system.
 
 Program is black box tested, using my own [test harness](/tests).
 
-TODO:
-- add transactions to kvs server, update report
 
 ### Build
 

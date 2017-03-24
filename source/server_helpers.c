@@ -11,12 +11,11 @@
  */
 void start_server(struct server_config *i, pthread_t t) {
 	if (pthread_create(&t, NULL, server_listen, i) < 0) {
-		perror_line("Could not start server.");
+		perror_exit("Could not start server.");
 	}
 
-	DEBUG_PRINT(("Successfully started %d server listening on port %d.\n", ((struct server_config *)i)->type, ((struct server_config *)i)->port));
+	DEBUG_PRINT(("Successfully started %d server listening on port %d.\n", i->type, i->port));
 }
-
 
 /**
  * Polls for new connections
@@ -32,7 +31,7 @@ int poll_for_connections(int sock) {
 
 		result = poll(&pfd, 1, POLL_TIMEOUT);
 
-		if ((pfd.revents & POLLNVAL) || (result == -1)) {
+		if ((pfd.revents & POLLNVAL) || result == -1) {
 			return -1;
 
 		} else if (pfd.revents & (POLLHUP | POLLERR)) {
@@ -45,6 +44,9 @@ int poll_for_connections(int sock) {
 	return -1; // client disconnected
 }
 
+/**
+ * Accepts a connection.
+ */
 int accept_connection(int sock, void *address, socklen_t size) {
 	return accept(sock, (struct sockaddr *) address, &size);
 }

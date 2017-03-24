@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
 	ports->cport = cport;
 	pthread_t main_thread = pthread_self();
 	if (pthread_create(&main_thread, NULL, initiate_servers, ports) < 0) {
-		perror_line("Could not start server.");
+		perror_exit("Could not start server.");
 		exit(-1);
 	}
 	printf("Waiting for server to start, please wait...\n"); fflush(stdout);
@@ -143,7 +143,7 @@ void test_data_protocol(int dport) {
 	pthread_t threads[number];
 	for(int i = 0; i < number; i++) {
 		if (pthread_create(&(threads[i]), NULL, test_multi_connections, &dport) < 0) {
-			perror_line("Could not start server.");
+			perror_exit("Could not start server.");
 			exit(-1);
 		}
 	}
@@ -153,7 +153,7 @@ void test_data_protocol(int dport) {
 	pthread_t threads2[number2];
 	for(int i = 0; i < number2; i++) {
 		if (pthread_create(&(threads2[i]), NULL, test_multi_connections_lots, &dport) < 0) {
-			perror_line("Could not start server.");
+			perror_exit("Could not start server.");
 			exit(-1);
 		}
 	}

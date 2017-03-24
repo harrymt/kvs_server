@@ -4,9 +4,18 @@
 #include "kv.h"
 #include "parser.h"
 #include "server.h"
+#include "safe_functions.h"
 
 // Lock to make the KVS threadsafe.
 pthread_mutex_t mutex_kvs = PTHREAD_MUTEX_INITIALIZER;
+
+void lock_store() {
+	pthread_mutex_lock_safe(&mutex_kvs);
+}
+
+void unlock_store() {
+	pthread_mutex_unlock_safe(&mutex_kvs);
+}
 
 /**
  * Parses the message based on the CONTROL protocol.
@@ -23,7 +32,7 @@ pthread_mutex_t mutex_kvs = PTHREAD_MUTEX_INITIALIZER;
  *  		- "Shutting down."
  *
  */
-int parse_message_with_control_protocol(void *message) {
+int parse_message_with_control_protocol(void *message, int message_size) {
 
 	// Parse a Control command
 	enum CONTROL_CMD cmd = parse_c(message);
@@ -33,29 +42,29 @@ int parse_message_with_control_protocol(void *message) {
 
 		// If a user types a wrong command, show error,
 		// otherwise if they hit return then close their connection
-		 if(strlen(message) == 0) {
-			 sprintf(message, "Goodbye.\n");
+		 if(strnlen(message, message_size) == 0) {
+			 sprintf_safe(message, "Goodbye.\n");
 			 return R_DEATH;  // They want to exit
 
 		 } else {
 			 // Just show a command not found error
-		     sprintf(message, "Command not found.\n");
+			 sprintf_safe(message, "Command not found.\n");
 		 }
 
 	// If the user has issued the SHUTDOWN command.
 	} else if(cmd == C_SHUTDOWN) {
 
 		// Send them back a shutdown message.
-		sprintf(message, "Shutting down.\n");
+		sprintf_safe(message, "Shutting down.\n");
 		return R_SHUTDOWN;
 
 	// If the user issued COUNT command
 	} else if(cmd == C_COUNT) {
 
 		// countItems() should never fail.
-		pthread_mutex_lock(&mutex_kvs);
-		sprintf(message, "%d\n", countItems());
-		pthread_mutex_unlock(&mutex_kvs);
+		lock_store();
+		sprintf_arg_safe(message, "%d\n", countItems());
+		unlock_store();
 
 	} else {
 		DEBUG_PRINT(("ERROR, should never happen. cmd %d", cmd));
@@ -104,12 +113,12 @@ int parse_message_with_control_protocol(void *message) {
  *			- "Goodbye."
  *
  */
-int parse_message_with_data_protocol(void* message) {
+int parse_message_with_data_protocol(void* message, int message_size) {
 
 	// Parse the command, storing the results in key and text.
 	enum DATA_CMD cmd;
 	char *key[512];
-	char *text = (char*) malloc(LINE * sizeof(char));
+	char *text = (char*) malloc_safe(LINE * sizeof(char));
 
 	int is_success = parse_d(message, &cmd, key, &text);
 	if(is_success == 2 || is_success == 3) {
@@ -120,91 +129,91 @@ int parse_message_with_data_protocol(void* message) {
 	if(cmd == D_COUNT) {
 
 		// countItems should never fail
-		pthread_mutex_lock(&mutex_kvs);
+		lock_store();
 		int itemCount = countItems();
-		pthread_mutex_unlock(&mutex_kvs);
+		unlock_store();
 
-		sprintf(message, "%d\n", itemCount);
+		sprintf_arg_safe(message, "%d\n", itemCount);
 
 	// If user issued EXISTS command
 	} else if(cmd == D_EXISTS) {
 
 		// itemExists should never fail
-		pthread_mutex_lock(&mutex_kvs);
+		lock_store();
 		int does_exist = itemExists(*key);
-		pthread_mutex_unlock(&mutex_kvs);
+		unlock_store();
 
-		sprintf(message, "%d\n", does_exist);
+		sprintf_arg_safe(message, "%d\n", does_exist);
 
 	// If user issued GET command
 	} else if(cmd == D_GET) {
 
 		// findValue could return NULL
-		pthread_mutex_lock(&mutex_kvs);
+		lock_store();
 		char* result = findValue(*key);
-		pthread_mutex_unlock(&mutex_kvs);
+		unlock_store();
 
 		// Check if the key exists
 		if(result == NULL) {
-			sprintf(message, "No such key.\n");
+			sprintf_safe(message, "No such key.\n");
 		} else {
-			sprintf(message, "%s\n", result);
+			sprintf_arg_str_safe(message, "%s\n", result);
 		}
 
 	// If user issued PUT command
 	} else if(cmd == D_PUT) {
 
 		// Create the text to store on the heap
-		char* copytext = malloc(strlen(text) + 1);
-		strncpy(copytext, text, strlen(text) + 1);
+		char* copytext = malloc_safe(strnlen(text, message_size) + 1);
+		strncpy(copytext, text, strnlen(text, message_size) + 1);
 
 		// If item exists, or table is full then -1
-		pthread_mutex_lock(&mutex_kvs);
+		lock_store();
 		int is_error = createItem(*key, copytext);
-		pthread_mutex_unlock(&mutex_kvs);
+		unlock_store();
 
 		// Check if result exists
 		if(is_error == 0) {
-			sprintf(message, "Success.\n");
+			sprintf_safe(message, "Success.\n");
 		} else {
-			sprintf(message, "Error storing key.\n");
+			sprintf_safe(message, "Error storing key.\n");
 		}
 
 	// If user issued DELETE command
 	} else if(cmd == D_DELETE) {
 
 		// -1 if item doesn't exist.
-		pthread_mutex_lock(&mutex_kvs);
+		lock_store();
 		int is_error = deleteItem(*key, false);
-		pthread_mutex_unlock(&mutex_kvs);
+		unlock_store();
 
 		// Check if item exists
 		if(is_error == 0) {
-			sprintf(message, "Success.\n");
+			sprintf_safe(message, "Success.\n");
 		} else {
-			sprintf(message, "Error, no key found.\n");
+			sprintf_safe(message, "Error, no key found.\n");
 		}
 
 	// If user just hit return
 	} else if(cmd == D_END)	{
-		sprintf(message, "Goodbye.\n");
+		sprintf_safe(message, "Goodbye.\n");
 		return R_DEATH; // They want to exit
 
 	// Error messages
 	} else if(cmd == D_ERR_OL) {
-		sprintf(message, "Error, can't find EOL, line too long.\n");
+		sprintf_safe(message, "Error, can't find EOL, line too long.\n");
 
 	} else if(cmd == D_ERR_INVALID) {
-		sprintf(message, "Error, command not found.\n");
+		sprintf_safe(message, "Error, command not found.\n");
 
 	} else if(cmd == D_ERR_SHORT) {
-		sprintf(message, "Error, command too short.\n");
+		sprintf_safe(message, "Error, command too short.\n");
 
 	} else if(cmd == D_ERR_LONG) {
-		sprintf(message, "Error, command too long.\n");
+		sprintf_safe(message, "Error, command too long.\n");
 
 	} else {
-		sprintf(message, "Command not found.\n");
+		sprintf_safe(message, "Command not found.\n");
 	}
 
 	return R_SUCCESS;
@@ -216,13 +225,13 @@ int parse_message_with_data_protocol(void* message) {
  * stores the result to give back to the client in the message parameter,
  * returns an enum about what to do next.
  */
-enum RETURN_TYPE run_command(int type, void* message) {
+enum RETURN_TYPE run_command(int type, void* message, int message_size) {
 
 	if(type == DATA) {
-		return parse_message_with_data_protocol(message);
+		return parse_message_with_data_protocol(message, message_size);
 
 	} else if (type == CONTROL) {
-    	return parse_message_with_control_protocol(message);
+    	return parse_message_with_control_protocol(message, message_size);
 	}
 
 	return R_ERROR;

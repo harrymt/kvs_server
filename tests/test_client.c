@@ -17,7 +17,7 @@ void my_assert_equals(char* a, char* b, char* test_name) {
 	if(test_success) {
 		char o[512];
 		sprintf(o, "ASSERTION FAILED: %s: ('%s' != '%s')", test_name, a, b);
-		perror_line(o);
+		perror_exit(o);
 	} else {
 		DEBUG_PRINT(("> Passed: '%s'\n", test_name));
 	}
@@ -28,7 +28,7 @@ void my_assert_equals(char* a, char* b, char* test_name) {
  * Send a command (input) to the connection.
  */
 void send_cmd(char* input, int connection) {
-	if(write(connection, input, strlen(input) + 1) < 0) perror_line("Write error.");
+	if(write(connection, input, strlen(input) + 1) < 0) perror_exit("Write error.");
 }
 
 /**
@@ -52,10 +52,10 @@ void leave_server(int connection) {
  * Connect to a server on a port.
  */
 int connect_to_server(int port) {
-	int my_test_sock = socket(AF_INET, SOCK_STREAM, 0); if(my_test_sock == -1) perror_line("Error opening socket.");
+	int my_test_sock = socket(AF_INET, SOCK_STREAM, 0); if(my_test_sock == -1) perror_exit("Error opening socket.");
 
 	struct in_addr server_addr;
-	if(!inet_pton(AF_INET, "127.0.0.1", &server_addr)) perror_line("Inet error.");
+	if(!inet_pton(AF_INET, "127.0.0.1", &server_addr)) perror_exit("Inet error.");
 
 	struct sockaddr_in connection;
 	memcpy(&connection.sin_addr, &server_addr, sizeof(server_addr));
@@ -64,7 +64,7 @@ int connect_to_server(int port) {
 
 	int sock = connect(my_test_sock, (const struct sockaddr*) &connection, sizeof(connection));
 	while(sock == ECONNREFUSED) {
-		if(sock == -1) perror_line("Have you started the server?");
+		if(sock == -1) perror_exit("Have you started the server?");
 		sleep(1); // keep trying to re-connect
 	}
 

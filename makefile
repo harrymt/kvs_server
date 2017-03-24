@@ -10,7 +10,7 @@ PARAMETERS=8000 5000
 ALL_OBJECTS=$(OBJECTS) $(B_DIR)/main.o
 
 # Objects containing no main() functions
-OBJECTS=$(B_DIR)/socket-helper.o $(B_DIR)/protocol_manager.o $(B_DIR)/parser.o $(B_DIR)/kv.o $(B_DIR)/message_manager.o $(B_DIR)/server_helpers.o $(B_DIR)/queue.o $(B_DIR)/server.o
+OBJECTS=$(B_DIR)/safe_functions.o $(B_DIR)/socket_helper.o $(B_DIR)/protocol_manager.o $(B_DIR)/parser.o $(B_DIR)/kv.o $(B_DIR)/message_manager.o $(B_DIR)/server_helpers.o $(B_DIR)/queue.o $(B_DIR)/server.o
 
 # C compiler optimisations and warnings
 # -pthread Library needed for pthread commands

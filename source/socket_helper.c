@@ -1,4 +1,4 @@
-#include "socket-helper.h"
+#include "socket_helper.h"
 
 #include <sys/socket.h>
 #include <unistd.h>
@@ -17,10 +17,10 @@
  */
 int bind_socket(int fd, int port) {
   struct sockaddr_in sa;
-  socklen_t len = sizeof(sa); // TODO maybe have to keep this memory somewhere
+  socklen_t len = sizeof(sa);
   memset(&sa, 0, len);
   sa.sin_family = AF_INET;
-  sa.sin_addr.s_addr = htonl(INADDR_ANY); // or INADDR_LOOPBACK
+  sa.sin_addr.s_addr = htonl(INADDR_ANY);
   sa.sin_port = htons(port);
   return bind(fd, (struct sockaddr *) &sa, len);
 }
@@ -48,13 +48,13 @@ int setup_socket(int port) {
 
   // Create socket
   int file_descriptor = build_socket();
-  if(file_descriptor == -1) { perror_line("Error creating socket"); }
+  if(file_descriptor == -1) { perror_exit("Error creating socket"); }
 
   // Bind
-  if(bind_socket(file_descriptor, port) == -1) { perror_line("Error binding socket"); }
+  if(bind_socket(file_descriptor, port) == -1) { perror_exit("Error binding socket"); }
 
   // Listen
-  if(listen(file_descriptor, LISTEN_BACKLOG) == -1) { perror_line("Error listening"); }
+  if(listen(file_descriptor, LISTEN_BACKLOG) == -1) { perror_exit("Error listening"); }
 
   return file_descriptor;
 }
