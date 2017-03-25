@@ -9,7 +9,9 @@ Program is black box tested, using my own [test harness](/tests).
 
 ### Build
 
-`make`
+- Download the [latest release](https://github.com/harrymt/kvs_server/releases).
+- Extract the zip file and navigate to the directory in a terminal.
+- `make` - To build the project
 
 ### Run
 
