@@ -16,7 +16,7 @@
    *
    * Note: The extra parentheses are necessary, because some older C compilers don't support var-args in macros.
    */
-//   #define DEBUG
+        //   #define DEBUG
   #ifdef DEBUG
   # define DEBUG_PRINT(x) printf x
   #else

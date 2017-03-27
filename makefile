@@ -14,7 +14,7 @@ OBJECTS=$(B_DIR)/safe_functions.o $(B_DIR)/socket_helper.o $(B_DIR)/protocol_man
 
 # C compiler optimisations and warnings
 # -pthread Library needed for pthread commands
-CFLAGS=-Wall -Wextra -std=gnu99
+CFLAGS=-Wall -Wextra -std=c99
 CLIBRARIES=-pthread
 
 

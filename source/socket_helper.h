@@ -7,6 +7,6 @@
  * the file descriptor.
  */
 int setup_socket(int port);
+int build_socket();
 
 #endif
-
