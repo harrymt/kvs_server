@@ -21,7 +21,7 @@ CLIBRARIES=-pthread
 build: clean $(ALL_OBJECTS)
 	gcc -o $(B_DIR)/$(SOURCE) $(ALL_OBJECTS) $(CLIBRARIES)
 
-tests: clean $(T_DIR)/test_client.c $(T_DIR)/$(T_DIR).c $(OBJECTS)
+tests: $(T_DIR)/test_client.c $(T_DIR)/$(T_DIR).c $(OBJECTS)
 	gcc -I . $(CFLAGS) -o $(B_DIR)/$(T_DIR) $(T_DIR)/test_client.c $(T_DIR)/$(T_DIR).c $(OBJECTS) $(CLIBRARIES)
 
 run:
