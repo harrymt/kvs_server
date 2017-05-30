@@ -31,6 +31,17 @@ Run
 
 `./build/tests <control port number> <data port number>`
 
+Issues with tests may occur, producing the following output:
+
+```
+Waiting for server to start, please wait...
+Server started.
+Testing data server...
+Testing control server...
+tests/test_client.c:66: Have you started the server?: Connection refused
+```
+
+The solution is to use a different terminal.
 
 ### Usage
 
