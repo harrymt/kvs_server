@@ -29,7 +29,7 @@ Build
 
 Run
 
-`./tests/tests <control port number> <data port number>`
+`./build/tests <control port number> <data port number>`
 
 
 ### Usage
